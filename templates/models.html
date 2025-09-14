@@ -1,0 +1,768 @@
+{% extends "base.html" %}
+
+{% block title %}Models - {{ project.name }} - Griffonder{% endblock %}
+
+{% block content %}
+<div class="models-container">
+    <div class="page-header">
+        <h1><i class="fas fa-cubes"></i> Models</h1>
+        <div class="header-actions">
+            <a href="{{ url_for('train_model', project_id=project.id) }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Train New Model
+            </a>
+            <div class="dropdown">
+                <button class="btn btn-outline dropdown-toggle" id="import-model-btn">
+                    <i class="fas fa-file-import"></i> Import Model
+                </button>
+                <div class="dropdown-menu">
+                    <a href="#" id="upload-custom-model-btn">
+                        <i class="fas fa-upload"></i> Upload Custom Model
+                    </a>
+                    <a href="#" id="use-pretrained-model-btn">
+                        <i class="fas fa-cloud-download-alt"></i> Use Pretrained Weights
+                    </a>
+                </div>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-outline dropdown-toggle">
+                    <i class="fas fa-broom"></i> Cleanup
+                </button>
+                <div class="dropdown-menu">
+                    <a href="#" id="clean-datasets-btn" data-project-id="{{ project.id }}">
+                        <i class="fas fa-folder-minus"></i> Clean Up Datasets
+                    </a>
+                    <a href="#" id="clear-training-status-btn" data-project-id="{{ project.id }}">
+                        <i class="fas fa-eraser"></i> Clear Training Progress
+                    </a>
+                    <a href="#" id="clean-failed-models-btn" data-project-id="{{ project.id }}">
+                        <i class="fas fa-trash-alt"></i> Remove Failed Models
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="search-filter-bar">
+        <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search models..." id="model-search">
+        </div>
+        <div class="filter-actions">
+            <div class="dropdown">
+                <button class="btn btn-outline dropdown-toggle">
+                    <i class="fas fa-sort"></i> Sort by
+                </button>
+                <div class="dropdown-menu">
+                    <a href="#" data-sort="date-desc">Newest first</a>
+                    <a href="#" data-sort="date-asc">Oldest first</a>
+                    <a href="#" data-sort="name">Name (A-Z)</a>
+                    <a href="#" data-sort="performance">Performance</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="models-grid">
+        {% for model in models %}
+        <div class="model-card" data-model-id="{{ model.id }}">
+            <div class="model-header">
+                <div class="model-name">{{ model.name }}</div>
+                <div class="model-status status-{{ model.status }}">{{ model.status }}</div>
+            </div>
+            <div class="model-info">
+                <div class="model-type">{{ model.model_type }}</div>
+                <div class="model-date">{{ model.created_at.strftime('%b %d, %Y') }}</div>
+            </div>
+            
+            {% if model.status == 'complete' %}
+            <div class="model-metrics">
+                <div class="metric-row">
+                    <div class="metric">
+                        <div class="metric-name">mAP@.5</div>
+                        <div class="metric-value">{{ model.metrics.map50|default('N/A') }}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-name">mAP@.5:.95</div>
+                        <div class="metric-value">{{ model.metrics.map|default('N/A') }}</div>
+                    </div>
+                </div>
+                <div class="metric-row">
+                    <div class="metric">
+                        <div class="metric-name">Precision</div>
+                        <div class="metric-value">{{ model.metrics.precision|default('N/A') }}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-name">Recall</div>
+                        <div class="metric-value">{{ model.metrics.recall|default('N/A') }}</div>
+                    </div>
+                </div>
+            </div>
+            {% elif model.status == 'training' %}
+            <div class="training-progress">
+                <div class="progress-header">
+                    <span>Training progress</span>
+                    <span class="epoch-count">{{ model.current_epoch|default(0) }}/{{ model.epochs }}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress" style="width: {{ (model.current_epoch|default(0) / model.epochs * 100)|round|int }}%"></div>
+                </div>
+            </div>
+            {% elif model.status == 'failed' %}
+            <div class="error-message">
+                Training failed: {{ model.error_message|default('Unknown error') }}
+            </div>
+            {% elif model.status == 'creating' %}
+            <span class="text-muted small">Preparing...</span>
+            {% endif %}
+            
+            <div class="model-actions">
+                {% if model.status == 'complete' %}
+                <button class="btn btn-sm btn-primary view-model-btn" data-model-id="{{ model.id }}">
+                    <i class="fas fa-eye"></i> View Results
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline dropdown-toggle">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                    <div class="dropdown-menu">
+                        <a href="{{ url_for('download_model', model_id=model.id, format='pt') }}">PyTorch (.pt)</a>
+                        <a href="{{ url_for('download_model', model_id=model.id, format='onnx') }}">ONNX (.onnx)</a>
+                        <a href="{{ url_for('download_model', model_id=model.id, format='tflite') }}">TensorFlow Lite (.tflite)</a>
+                    </div>
+                </div>
+                {% elif model.status == 'training' %}
+                <button class="btn btn-sm btn-outline cancel-training-btn" data-model-id="{{ model.id }}">
+                    <i class="fas fa-stop"></i> Cancel
+                </button>
+                {% elif model.status == 'failed' %}
+                <button class="btn btn-sm btn-primary retry-training-btn" data-model-id="{{ model.id }}">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+                {% elif model.status == 'creating' %}
+                <span class="text-muted small">Preparing...</span>
+                {% endif %}
+                <button class="btn btn-sm btn-danger delete-model-btn" data-model-id="{{ model.id }}">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+        
+        {% if not models %}
+        <div class="no-models">
+            <i class="fas fa-robot"></i>
+            <p>You haven't trained any models yet.</p>
+            <a href="{{ url_for('train_model', project_id=project.id) }}" class="btn btn-primary">
+                <i class="fas fa-play"></i> Train Your First Model
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add modal for custom model upload -->
+<div class="modal" id="upload-model-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Upload Custom Model</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="upload-model-form" enctype="multipart/form-data">
+                    <input type="hidden" name="project_id" value="{{ project.id }}">
+                    <div class="form-group">
+                        <label for="model-name">Model Name</label>
+                        <input type="text" class="form-control" id="model-name" name="model_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="model-file">Model File (.pt, .pth, .weights, .onnx)</label>
+                        <input type="file" class="form-control" id="model-file" name="model_file" required accept=".pt,.pth,.weights,.onnx">
+                        <small class="form-text text-muted">
+                            Upload a YOLO compatible model file. Supported formats: PyTorch (.pt, .pth), 
+                            Darknet (.weights), or ONNX (.onnx).
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="upload-model-submit">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add modal for pretrained models -->
+<div class="modal" id="pretrained-model-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Use Pretrained Weights</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="pretrained-model-form">
+                    <input type="hidden" name="project_id" value="{{ project.id }}">
+                    <div class="form-group">
+                        <label for="pretrained-model-name">Model Name</label>
+                        <input type="text" class="form-control" id="pretrained-model-name" name="model_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pretrained-model-type">Model Type</label>
+                        <select class="form-control" id="pretrained-model-type" name="model_type" required>
+                            <option value="yolov8n.pt">YOLOv8 Nano - Fastest</option>
+                            <option value="yolov8s.pt">YOLOv8 Small - Fast</option>
+                            <option value="yolov8m.pt">YOLOv8 Medium - Balanced</option>
+                            <option value="yolov8l.pt">YOLOv8 Large - Accurate</option>
+                            <option value="yolov8x.pt">YOLOv8 XLarge - Most Accurate</option>
+                        </select>
+                        <small class="form-text text-muted">
+                            Select a pretrained model to use. The model will be downloaded if not already available.
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="pretrained-model-submit">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    .models-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+    
+    .page-header h1 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 24px;
+        margin: 0;
+    }
+    
+    .header-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .search-filter-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .search-container {
+        position: relative;
+        width: 300px;
+    }
+    
+    .search-container i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #888;
+    }
+    
+    .search-container input {
+        width: 100%;
+        padding: 10px 12px 10px 35px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+    }
+    
+    .filter-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .models-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    
+    .model-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .model-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .model-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .model-name {
+        font-weight: 600;
+        font-size: 16px;
+    }
+    
+    .model-status {
+        font-size: 12px;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    
+    .status-complete {
+        background-color: rgba(46, 213, 115, 0.15);
+        color: #2ed573;
+    }
+    
+    .status-training {
+        background-color: rgba(108, 92, 231, 0.15);
+        color: #6c5ce7;
+    }
+    
+    .status-failed {
+        background-color: rgba(255, 71, 87, 0.15);
+        color: #ff4757;
+    }
+    
+    .model-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        font-size: 13px;
+        color: #777;
+    }
+    
+    .model-metrics {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .metric-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    
+    .metric-row:last-child {
+        margin-bottom: 0;
+    }
+    
+    .metric {
+        text-align: center;
+        flex: 1;
+    }
+    
+    .metric-name {
+        font-size: 12px;
+        color: #777;
+        margin-bottom: 5px;
+    }
+    
+    .metric-value {
+        font-weight: 600;
+        font-size: 16px;
+    }
+    
+    .training-progress {
+        margin-bottom: 15px;
+    }
+    
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        margin-bottom: 5px;
+    }
+    
+    .progress-bar {
+        height: 8px;
+        background: #eee;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .progress {
+        height: 100%;
+        background: #6c5ce7;
+        border-radius: 4px;
+    }
+    
+    .error-message {
+        background: rgba(255, 71, 87, 0.1);
+        color: #ff4757;
+        padding: 10px;
+        border-radius: 6px;
+        font-size: 13px;
+        margin-bottom: 15px;
+    }
+    
+    .model-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+    }
+    
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 4px;
+    }
+    
+    .no-models {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 50px 20px;
+        color: #888;
+    }
+    
+    .no-models i {
+        font-size: 40px;
+        margin-bottom: 10px;
+        opacity: 0.5;
+    }
+    
+    .no-models p {
+        margin-bottom: 20px;
+    }
+    
+    /* Dropdown */
+    .dropdown {
+        position: relative;
+    }
+    
+    .dropdown-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: 10;
+        min-width: 150px;
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        padding: 5px 0;
+        display: none;
+    }
+    
+    .dropdown-menu a {
+        display: block;
+        padding: 8px 15px;
+        color: #333;
+        text-decoration: none;
+        font-size: 13px;
+    }
+    
+    .dropdown-menu a:hover {
+        background-color: #f5f5f5;
+    }
+    
+    /* Buttons */
+    .btn {
+        padding: 10px 15px;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .btn-sm {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+    
+    .btn-outline {
+        background: white;
+        border: 1px solid #6c5ce7;
+        color: #6c5ce7;
+    }
+    
+    .btn-outline:hover {
+        background: #f5f2ff;
+    }
+    
+    .btn-primary {
+        background: #6c5ce7;
+        border: 1px solid #6c5ce7;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #5d4ed3;
+    }
+
+    .btn-danger {
+        background: white;
+        border: 1px solid #ff4757;
+        color: #ff4757;
+    }
+    
+    .btn-danger:hover {
+        background: rgba(255, 71, 87, 0.1);
+    }
+    
+    .status-creating {
+        background-color: rgba(255, 159, 67, 0.15);
+        color: #ff9f43;
+    }
+    
+    .status-cancelled {
+        background-color: rgba(108, 117, 125, 0.15);
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Show custom model upload modal
+        $('#upload-custom-model-btn').click(function(e) {
+            e.preventDefault();
+            $('#upload-model-modal').modal('show');
+        });
+        
+        // Show pretrained model modal
+        $('#use-pretrained-model-btn').click(function(e) {
+            e.preventDefault();
+            $('#pretrained-model-modal').modal('show');
+        });
+        
+        // Handle custom model upload
+        $('#upload-model-submit').click(function() {
+            const form = $('#upload-model-form')[0];
+            const formData = new FormData(form);
+            
+            // Validate form
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Show loading state
+            $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Uploading...');
+            
+            $.ajax({
+                url: '/api/models/upload',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        // Show success message
+                        alert('Model uploaded successfully!');
+                        // Reload page to show new model
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (response.error || 'Unknown error'));
+                        $('#upload-model-submit').prop('disabled', false).text('Upload');
+                    }
+                },
+                error: function(xhr) {
+                    let errorMessage = 'Failed to upload model';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    }
+                    alert('Error: ' + errorMessage);
+                    $('#upload-model-submit').prop('disabled', false).text('Upload');
+                }
+            });
+        });
+        
+        // Handle pretrained model import
+        $('#pretrained-model-submit').click(function() {
+            const form = $('#pretrained-model-form')[0];
+            const formData = new FormData(form);
+            
+            // Validate form
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Show loading state
+            $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Importing...');
+            
+            $.ajax({
+                url: '/api/models/pretrained',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        // Show success message
+                        alert('Pretrained model imported successfully!');
+                        // Reload page to show new model
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (response.error || 'Unknown error'));
+                        $('#pretrained-model-submit').prop('disabled', false).text('Import');
+                    }
+                },
+                error: function(xhr) {
+                    let errorMessage = 'Failed to import pretrained model';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    }
+                    alert('Error: ' + errorMessage);
+                    $('#pretrained-model-submit').prop('disabled', false).text('Import');
+                }
+            });
+        });
+        
+        // Existing scripts...
+        
+        // Delete model functionality
+        $('.delete-model-btn').click(function() {
+            if (confirm('Are you sure you want to delete this model? This action cannot be undone.')) {
+                const modelId = $(this).data('model-id');
+                
+                $.ajax({
+                    url: `/api/models/${modelId}`,
+                    type: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            // Remove the model card
+                            $(`.model-card[data-model-id="${modelId}"]`).fadeOut(function() {
+                                $(this).remove();
+                                // If no models left, refresh to show empty state
+                                if ($('.model-card').length === 0) {
+                                    location.reload();
+                                }
+                            });
+                        } else {
+                            alert('Error: ' + (response.error || 'Unknown error'));
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to delete model');
+                    }
+                });
+            }
+        });
+        
+        // Clean up datasets
+        $('#clean-datasets-btn').click(function() {
+            if (confirm('This will remove all training datasets. Model weights will be preserved. Continue?')) {
+                const projectId = $(this).data('project-id');
+                
+                $.ajax({
+                    url: `/api/projects/${projectId}/cleanup_datasets`,
+                    type: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            alert(`Successfully removed ${response.deleted_count} dataset directories`);
+                        } else {
+                            alert('Error: ' + (response.error || 'Unknown error'));
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to clean up datasets');
+                    }
+                });
+            }
+        });
+        
+        // Clear training status
+        $('#clear-training-status-btn').click(function() {
+            if (confirm('This will clear any active training progress indicators. Continue?')) {
+                const projectId = $(this).data('project-id');
+                
+                $.ajax({
+                    url: '/api/training/clear_status',
+                    type: 'POST',
+                    data: { project_id: projectId },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(response.message);
+                        } else {
+                            alert('Error: ' + (response.error || 'Unknown error'));
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to clear training status');
+                    }
+                });
+            }
+        });
+        
+        // Clean failed models
+        $('#clean-failed-models-btn').click(function() {
+            if (confirm('This will permanently remove all failed models. Continue?')) {
+                const projectId = $(this).data('project-id');
+                
+                $.ajax({
+                    url: `/api/projects/${projectId}/clean_failed_models`,
+                    type: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            alert(response.message);
+                            // Reload to update UI
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (response.error || 'Unknown error'));
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to clean failed models');
+                    }
+                });
+            }
+        });
+        
+        // Model search functionality
+        $('#model-search').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            
+            $('.model-card').each(function() {
+                const modelName = $(this).find('.model-name').text().toLowerCase();
+                const modelType = $(this).find('.model-type').text().toLowerCase();
+                
+                if (modelName.includes(searchTerm) || modelType.includes(searchTerm)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

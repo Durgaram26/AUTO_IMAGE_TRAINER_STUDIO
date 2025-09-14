@@ -1,0 +1,1459 @@
+{% extends "base.html" %}
+
+{% block content %}
+<meta name="dataset-id" content="{{ dataset.id }}">
+<div class="container-fluid">
+    <div class="row">
+        <!-- Image List with Search -->
+        <div class="col-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title text-white mb-0">Images</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="imageSearch" placeholder="Search images..." onkeyup="filterImages()">
+                    </div>
+                    <div class="list-group image-list" style="max-height: 80vh; overflow-y: auto;">
+                        {% for image in dataset.images %}
+                        <a href="#" class="list-group-item list-group-item-action" 
+                           data-image-id="{{ image.id }}" data-filename="{{ image.filename }}"
+                           onclick="loadImage({{ image.id }}, '{{ image.filename }}')">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="image-name text-truncate" style="max-width: 150px;">{{ image.filename }}</span>
+                                <span class="badge bg-primary rounded-pill" id="annotCount{{ image.id }}">0</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Annotation Canvas -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title text-white mb-0"><span id="currentImageName">No Image Selected</span></h5>
+                        <div class="btn-group">
+                            <button class="btn btn-light" onclick="addClass()">
+                                <i class="fas fa-plus"></i> Add Class
+                            </button>
+                            <button class="btn btn-light" onclick="saveAnnotations()" id="saveButton" disabled>
+                                <i class="fas fa-save"></i> Save
+                            </button>
+                            <button class="btn btn-light" id="trainButton" disabled>
+                                <i class="fas fa-cog"></i> Train Model
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative">
+                        <div class="canvas-container bg-light rounded text-center d-flex align-items-center justify-content-center" 
+                            style="min-height: 600px; height: 75vh; border: 1px dashed #ccc; position: relative; overflow: auto;">
+                            <canvas id="annotationCanvas" style="position: absolute;"></canvas>
+                            <div id="noImageMessage" class="text-muted">
+                                <i class="fas fa-image" style="font-size: 3rem;"></i>
+                                <p>Select an image from the list to begin annotation</p>
+                            </div>
+                            <div class="canvas-tools position-absolute top-0 end-0 p-2 bg-white rounded-bottom-start">
+                                <button class="btn btn-sm btn-outline-secondary zoom-btn" onclick="zoomIn()">
+                                    <i class="fas fa-search-plus"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary zoom-btn" onclick="zoomOut()">
+                                    <i class="fas fa-search-minus"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary zoom-btn" onclick="resetZoom()">
+                                    <i class="fas fa-compress-arrows-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="progressOverlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+                             background-color: rgba(255,255,255,0.8); z-index: 1000;">
+                            <div class="d-flex align-items-center justify-content-center h-100">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                    <p class="mt-2" id="progressMessage">Saving annotations...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Annotation Controls -->
+        <div class="col-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title text-white mb-0">Controls</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Current Class</label>
+                        <select class="form-select" id="currentClass">
+                            <option value="" disabled selected>Select a class</option>
+                            <!-- Classes will be dynamically populated -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Classes</label>
+                        <div id="classList" class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                            <!-- Classes will be dynamically populated -->
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Tools</label>
+                        <div class="btn-group-vertical w-100">
+                            <button class="btn btn-outline-primary active" id="rectangleTool" onclick="setTool('rectangle')">
+                                <i class="fas fa-square"></i> Rectangle
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="clearAnnotations()">
+                                <i class="fas fa-trash"></i> Clear All
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Annotations</label>
+                        <div id="annotationList" class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                            <!-- Current image annotations will be listed here -->
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Shortcuts</label>
+                        <ul class="list-unstyled small">
+                            <li><kbd>R</kbd> Rectangle Tool</li>
+                            <li><kbd>Delete</kbd> Clear Selected</li>
+                            <li><kbd>Ctrl+S</kbd> Save</li>
+                            <li><kbd>+</kbd> Zoom In</li>
+                            <li><kbd>-</kbd> Zoom Out</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Class Modal -->
+<div class="modal fade" id="addClassModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(to right, var(--primary-color), var(--secondary-color)); color: white;">
+                <h5 class="modal-title">Add New Class</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addClassForm">
+                    <div class="mb-3">
+                        <label for="className" class="form-label">Class Name</label>
+                        <input type="text" class="form-control" id="className" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="classColor" class="form-label">Color</label>
+                        <input type="color" class="form-control form-control-color" id="classColor" value="#ff0000">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitClass()">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Train Model Modal -->
+<div class="modal fade" id="trainModelModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(to right, var(--primary-color), var(--secondary-color)); color: white;">
+                <h5 class="modal-title">Train YOLO Model</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Training will use all annotated images in this dataset. Please ensure you have annotated a sufficient number of images before training.
+                </div>
+                
+                <form id="trainModelForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="modelType" class="form-label">Model Type</label>
+                            <select class="form-select" id="modelType">
+                                <optgroup label="YOLOv8 Models">
+                                    <option value="yolov8n" selected>YOLOv8 Nano (fastest)</option>
+                                    <option value="yolov8s">YOLOv8 Small</option>
+                                    <option value="yolov8m">YOLOv8 Medium</option>
+                                    <option value="yolov8l">YOLOv8 Large</option>
+                                    <option value="yolov8x">YOLOv8 XLarge (most accurate)</option>
+                                </optgroup>
+                                <optgroup label="YOLOv11 Models">
+                                    <option value="yolov11n">YOLOv11 Nano</option>
+                                    <option value="yolov11s">YOLOv11 Small</option>
+                                    <option value="yolov11m">YOLOv11 Medium</option>
+                                    <option value="yolov11l">YOLOv11 Large</option>
+                                    <option value="yolov11x">YOLOv11 XLarge</option>
+                                </optgroup>
+                                <optgroup label="YOLOv5 Models">
+                                    <option value="yolov5n">YOLOv5 Nano</option>
+                                    <option value="yolov5s">YOLOv5 Small</option>
+                                    <option value="yolov5m">YOLOv5 Medium</option>
+                                    <option value="yolov5l">YOLOv5 Large</option>
+                                    <option value="yolov5x">YOLOv5 XLarge</option>
+                                </optgroup>
+                                <optgroup label="Other YOLO Models">
+                                    <option value="yolov7">YOLOv7</option>
+                                    <option value="yolov7x">YOLOv7X</option>
+                                    <option value="yolov9s">YOLOv9 Small</option>
+                                    <option value="yolov9m">YOLOv9 Medium</option>
+                                    <option value="yolov9c">YOLOv9 Compact</option>
+                                    <option value="yolov9e">YOLOv9 Edge</option>
+                                </optgroup>
+                            </select>
+                            <div class="form-text">Larger models are more accurate but slower and require more resources.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="epochs" class="form-label">Training Epochs</label>
+                            <input type="number" class="form-control" id="epochs" min="1" max="1000" value="50">
+                            <div class="form-text">More epochs generally improve accuracy but take longer to train.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="imageSize" class="form-label">Image Size</label>
+                            <select class="form-select" id="imageSize">
+                                <option value="320">320×320 (faster)</option>
+                                <option value="416">416×416</option>
+                                <option value="512">512×512</option>
+                                <option value="640" selected>640×640 (recommended)</option>
+                                <option value="1024">1024×1024 (more accurate)</option>
+                                <option value="1280">1280×1280 (high-res)</option>
+                            </select>
+                            <div class="form-text">Higher resolutions may improve detection of small objects.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="batchSize" class="form-label">Batch Size</label>
+                            <input type="number" class="form-control" id="batchSize" min="1" max="64" value="16">
+                            <div class="form-text">Lower values use less GPU memory but may train slower.</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="startTrainingBtn">Start Training</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let canvas = document.getElementById('annotationCanvas');
+let ctx = canvas.getContext('2d');
+let currentTool = 'rectangle';
+let isDrawing = false;
+let startX, startY;
+let currentImage = null;
+let annotations = [];
+let classes = {{ classes|tojson }};
+let classColors = {{ class_colors|tojson if class_colors else '{}' }};
+let datasetId = {{ dataset.id }};
+let currentScale = 1.0;
+let selectedAnnotationIndex = -1;
+let offsetX = 0;
+let offsetY = 0;
+let originalImageWidth = 0;
+let originalImageHeight = 0;
+
+// On page load
+document.addEventListener('DOMContentLoaded', function() {
+    initCanvas();
+    loadClassesFromServer();
+    setupEventListeners();
+    
+    // Enable tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Load classes from server to ensure persistence
+function loadClassesFromServer() {
+    fetch(`/api/datasets/${datasetId}/classes`)
+    .then(response => response.json())
+    .then(data => {
+        classes = data.classes || [];
+        classColors = data.class_colors || {};
+        
+        // Generate random colors for any classes that don't have colors
+        classes.forEach(cls => {
+            if (!classColors[cls]) {
+                classColors[cls] = getRandomColor();
+            }
+        });
+        
+        updateClassSelect();
+        updateClassList();
+    })
+    .catch(error => {
+        console.error('Error loading classes:', error);
+    });
+}
+
+// Setup event listeners
+function setupEventListeners() {
+    // Setup keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'r' || e.key === 'R') {
+            setTool('rectangle');
+        } else if (e.key === 'Delete') {
+            if (selectedAnnotationIndex >= 0) {
+                deleteSelectedAnnotation();
+            }
+        } else if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
+            e.preventDefault();
+            saveAnnotations();
+        } else if (e.key === '+') {
+            zoomIn();
+        } else if (e.key === '-') {
+            zoomOut();
+        }
+    });
+    
+    // Canvas event listeners
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('click', selectAnnotation);
+    
+    // Add mouse wheel zoom support
+    canvas.addEventListener('wheel', function(e) {
+        if (!currentImage) return;
+        e.preventDefault();
+        
+        // Get mouse position relative to canvas
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Zoom in or out based on wheel direction
+        if (e.deltaY < 0) {
+            // Zoom in
+            currentScale *= 1.1;
+        } else {
+            // Zoom out
+            currentScale *= 0.9;
+        }
+        
+        // Limit zoom level
+        currentScale = Math.max(0.2, Math.min(currentScale, 10.0));
+        
+        drawImageAndAnnotations();
+    });
+    
+    // Set up the Train Model button
+    document.getElementById('trainButton').addEventListener('click', function() {
+        // Check if there are any annotations
+        let hasAnnotations = false;
+        document.querySelectorAll('[id^="annotCount"]').forEach(el => {
+            if (parseInt(el.textContent) > 0) {
+                hasAnnotations = true;
+            }
+        });
+        
+        if (!hasAnnotations) {
+            alert('You must add annotations to at least one image before training.');
+            return;
+        }
+        
+        // Open the training modal
+        new bootstrap.Modal(document.getElementById('trainModelModal')).show();
+    });
+    
+    // Set up the Start Training button inside the modal
+    document.getElementById('startTrainingBtn').addEventListener('click', function() {
+        startTraining();
+    });
+    
+    // Add pan support
+    let isPanning = false;
+    let lastPanPoint = { x: 0, y: 0 };
+    
+    canvas.addEventListener('mousedown', function(e) {
+        // Middle mouse button (wheel) for panning
+        if (e.button === 1) {
+            e.preventDefault();
+            isPanning = true;
+            lastPanPoint = { x: e.clientX, y: e.clientY };
+        }
+    });
+    
+    canvas.addEventListener('mousemove', function(e) {
+        if (isPanning && currentImage) {
+            const dx = e.clientX - lastPanPoint.x;
+            const dy = e.clientY - lastPanPoint.y;
+            
+            offsetX += dx;
+            offsetY += dy;
+            
+            lastPanPoint = { x: e.clientX, y: e.clientY };
+            drawImageAndAnnotations();
+        }
+    });
+    
+    window.addEventListener('mouseup', function() {
+        isPanning = false;
+    });
+}
+
+// Initialize canvas
+function initCanvas() {
+    // Set canvas to a large size to accommodate zooming
+    updateCanvasDimensions();
+    
+    // Handle window resize
+    window.addEventListener('resize', updateCanvasDimensions);
+}
+
+function updateCanvasDimensions() {
+    const container = document.querySelector('.canvas-container');
+    if (container) {
+        // Set canvas dimensions to match container
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        
+        if (currentImage) {
+            drawImageAndAnnotations();
+        }
+    }
+}
+
+// Generate a random color
+function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
+// Load image
+function loadImage(imageId, filename) {
+    // First save current image annotations if any
+    if (currentImage && annotations.length > 0) {
+        if (confirm('Do you want to save annotations for the current image before switching?')) {
+            saveAnnotations();
+        }
+    }
+    
+    // Show loading indicator
+    showProgress('Loading image...');
+    
+    currentImage = new Image();
+    currentImage.id = imageId;
+    currentImage.filename = filename;
+    
+    // Update active image in the list
+    document.querySelectorAll('.list-group-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector(`[data-image-id="${imageId}"]`).classList.add('active');
+    
+    // Update image name display
+    document.getElementById('currentImageName').textContent = filename;
+    
+    // Hide no image message
+    document.getElementById('noImageMessage').style.display = 'none';
+    
+    // Enable save button
+    document.getElementById('saveButton').disabled = false;
+    document.getElementById('trainButton').disabled = false;
+    
+    currentImage.onload = function() {
+        // Store original dimensions
+        originalImageWidth = currentImage.width;
+        originalImageHeight = currentImage.height;
+        
+        resetZoom();
+        loadAnnotations(imageId);
+        hideProgress();
+    };
+    
+    currentImage.onerror = function() {
+        // Try alternate path - use the datasetId variable already defined in this script
+        const altPath = `/static/uploads/${datasetId}/${filename}`;
+        if (this.src !== altPath) {
+            this.src = altPath;
+        } else {
+            // Try direct uploads folder as last resort
+            this.src = `/static/uploads/${filename}`;
+            this.onerror = function() {
+                hideProgress();
+                alert('Failed to load image. Please try again.');
+            };
+        }
+    };
+    
+    // Try dataset subfolder first (using the datasetId variable already defined)
+    currentImage.src = `/static/uploads/${datasetId}/${filename}`;
+}
+
+// Filter images in the list
+function filterImages() {
+    const searchText = document.getElementById('imageSearch').value.toLowerCase();
+    const imageItems = document.querySelectorAll('.image-list .list-group-item');
+    
+    imageItems.forEach(item => {
+        const filename = item.querySelector('.image-name').textContent.toLowerCase();
+        if (filename.includes(searchText)) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Set drawing tool
+function setTool(tool) {
+    currentTool = tool;
+    document.querySelectorAll('.btn-outline-primary').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(tool + 'Tool').classList.add('active');
+}
+
+// Add new class
+function addClass() {
+    // Reset the form
+    document.getElementById('className').value = '';
+    document.getElementById('classColor').value = getRandomColor();
+    
+    // Show the modal
+    new bootstrap.Modal(document.getElementById('addClassModal')).show();
+}
+
+function submitClass() {
+    const className = document.getElementById('className').value.trim();
+    const classColor = document.getElementById('classColor').value;
+    
+    if (!className) {
+        alert('Please enter a class name');
+        return;
+    }
+    
+    if (classes.includes(className)) {
+        alert('Class already exists. Please use a different name.');
+        return;
+    }
+    
+    classes.push(className);
+    classColors[className] = classColor;
+    
+    updateClassSelect();
+    updateClassList();
+    saveClassesToServer();
+    
+    bootstrap.Modal.getInstance(document.getElementById('addClassModal')).hide();
+}
+
+// Update class select dropdown
+function updateClassSelect() {
+    const select = document.getElementById('currentClass');
+    select.innerHTML = '<option value="" disabled selected>Select a class</option>';
+    
+    classes.forEach(cls => {
+        const option = document.createElement('option');
+        option.value = cls;
+        option.textContent = cls;
+        option.style.backgroundColor = classColors[cls] || '#ff0000';
+        select.appendChild(option);
+    });
+    
+    // Select the first class if available
+    if (classes.length > 0) {
+        select.value = classes[0];
+    }
+}
+
+// Update class list display
+function updateClassList() {
+    const classList = document.getElementById('classList');
+    
+    if (classes.length === 0) {
+        classList.innerHTML = '<div class="text-muted text-center">No classes added yet</div>';
+        return;
+    }
+    
+    classList.innerHTML = '';
+    
+    classes.forEach(cls => {
+        const classItem = document.createElement('div');
+        classItem.className = 'd-flex align-items-center justify-content-between mb-2 p-1 border-bottom';
+        
+        const colorBox = document.createElement('div');
+        colorBox.style.backgroundColor = classColors[cls] || '#ff0000';
+        colorBox.style.width = '20px';
+        colorBox.style.height = '20px';
+        colorBox.style.marginRight = '10px';
+        colorBox.style.borderRadius = '3px';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = cls;
+        
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'd-flex align-items-center';
+        leftDiv.appendChild(colorBox);
+        leftDiv.appendChild(nameSpan);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-sm btn-outline-danger';
+        deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+        deleteBtn.onclick = function() {
+            if (confirm(`Are you sure you want to remove the class "${cls}"?`)) {
+                removeClassAndAnnotations(cls);
+            }
+        };
+        
+        classItem.appendChild(leftDiv);
+        classItem.appendChild(deleteBtn);
+        classList.appendChild(classItem);
+    });
+}
+
+// Remove a class and its annotations
+function removeClassAndAnnotations(className) {
+    // Remove any annotations with this class
+    annotations = annotations.filter(ann => ann.class_name !== className);
+    
+    // Remove from classes and colors
+    const index = classes.indexOf(className);
+    if (index > -1) {
+        classes.splice(index, 1);
+        delete classColors[className];
+    }
+    
+    // Update UI
+    updateClassSelect();
+    updateClassList();
+    updateAnnotationList();
+    saveClassesToServer();
+    
+    // Redraw canvas
+    if (currentImage) {
+        drawImageAndAnnotations();
+    }
+}
+
+// Save classes to server
+function saveClassesToServer() {
+    fetch(`/api/datasets/${datasetId}/classes`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            classes: classes,
+            class_colors: classColors
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Failed to save classes to server');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// Convert screen coordinates to image coordinates
+function screenToImageCoords(x, y) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = originalImageWidth / (currentImage.width * currentScale);
+    const scaleY = originalImageHeight / (currentImage.height * currentScale);
+    
+    // Adjust for canvas position, scale and offset
+    const imageX = ((x - rect.left) - offsetX) / currentScale;
+    const imageY = ((y - rect.top) - offsetY) / currentScale;
+    
+    return { x: imageX, y: imageY };
+}
+
+// Start drawing
+function startDrawing(e) {
+    if (!currentImage || e.button !== 0) return; // Only left mouse button
+    if (!document.getElementById('currentClass').value) {
+        alert('Please select a class before drawing');
+        return;
+    }
+    
+    isDrawing = true;
+    
+    // Convert to image coordinates
+    const coords = screenToImageCoords(e.clientX, e.clientY);
+    startX = coords.x;
+    startY = coords.y;
+}
+
+// Draw on move
+function draw(e) {
+    if (!isDrawing || !currentImage) return;
+    
+    // Convert to image coordinates
+    const coords = screenToImageCoords(e.clientX, e.clientY);
+    const currentX = coords.x;
+    const currentY = coords.y;
+    
+    drawImageAndAnnotations();
+    
+    // Draw current shape based on tool
+    if (currentTool === 'rectangle') {
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
+        ctx.scale(currentScale, currentScale);
+        
+        ctx.strokeStyle = classColors[document.getElementById('currentClass').value] || '#ff0000';
+        ctx.lineWidth = 2 / currentScale; // Adjust line width for scale
+        const width = currentX - startX;
+        const height = currentY - startY;
+        ctx.strokeRect(startX, startY, width, height);
+        
+        ctx.restore();
+    }
+}
+
+// Stop drawing
+function stopDrawing(e) {
+    if (!isDrawing || !currentImage || e.button !== 0) return; // Only left mouse button
+    isDrawing = false;
+    
+    // Convert to image coordinates
+    const coords = screenToImageCoords(e.clientX, e.clientY);
+    const endX = coords.x;
+    const endY = coords.y;
+    
+    // Normalize coordinates (ensure x1 < x2, y1 < y2)
+    const x1 = Math.min(startX, endX) / originalImageWidth;
+    const y1 = Math.min(startY, endY) / originalImageHeight;
+    const x2 = Math.max(startX, endX) / originalImageWidth;
+    const y2 = Math.max(startY, endY) / originalImageHeight;
+    
+    // Minimum size check - adjust based on image dimensions
+    const minSize = 0.005; // 0.5% of image size
+    if (Math.abs(x2 - x1) < minSize || Math.abs(y2 - y1) < minSize) {
+        drawImageAndAnnotations();  // Redraw without the tiny box
+        return;
+    }
+    
+    const className = document.getElementById('currentClass').value;
+    
+    if (currentTool === 'rectangle') {
+        annotations.push({
+            class_name: className,
+            x1: x1,
+            y1: y1,
+            x2: x2,
+            y2: y2
+        });
+        
+        // Update annotation count in the sidebar
+        document.getElementById(`annotCount${currentImage.id}`).textContent = annotations.length;
+        
+        // Update annotation list
+        updateAnnotationList();
+    }
+    
+    drawImageAndAnnotations();
+}
+
+// Select an annotation
+function selectAnnotation(e) {
+    if (!currentImage || isDrawing) return;
+    
+    // Convert to image coordinates
+    const coords = screenToImageCoords(e.clientX, e.clientY);
+    const clickX = coords.x / originalImageWidth;
+    const clickY = coords.y / originalImageHeight;
+    
+    selectedAnnotationIndex = -1;
+    
+    // Check if click is inside any annotation
+    for (let i = annotations.length - 1; i >= 0; i--) {
+        const ann = annotations[i];
+        if (clickX >= ann.x1 && clickX <= ann.x2 && clickY >= ann.y1 && clickY <= ann.y2) {
+            selectedAnnotationIndex = i;
+            break;
+        }
+    }
+    
+    // Update UI to show selected annotation
+    updateAnnotationList();
+    drawImageAndAnnotations();
+}
+
+// Delete selected annotation
+function deleteSelectedAnnotation() {
+    if (selectedAnnotationIndex >= 0) {
+        annotations.splice(selectedAnnotationIndex, 1);
+        selectedAnnotationIndex = -1;
+        updateAnnotationList();
+        drawImageAndAnnotations();
+        
+        // Update annotation count
+        if (currentImage) {
+            document.getElementById(`annotCount${currentImage.id}`).textContent = annotations.length;
+        }
+    }
+}
+
+// Clear all annotations
+function clearAnnotations() {
+    if (!currentImage) return;
+    
+    if (confirm('Are you sure you want to clear all annotations for this image?')) {
+        annotations = [];
+        selectedAnnotationIndex = -1;
+        updateAnnotationList();
+        drawImageAndAnnotations();
+        
+        // Update annotation count
+        document.getElementById(`annotCount${currentImage.id}`).textContent = "0";
+    }
+}
+
+// Update annotation list in sidebar
+function updateAnnotationList() {
+    const annotationList = document.getElementById('annotationList');
+    
+    if (!annotations.length) {
+        annotationList.innerHTML = '<div class="text-muted text-center">No annotations</div>';
+        return;
+    }
+    
+    annotationList.innerHTML = '';
+    
+    annotations.forEach((ann, index) => {
+        const item = document.createElement('div');
+        item.className = 'd-flex align-items-center justify-content-between mb-1 p-1 border-bottom';
+        if (index === selectedAnnotationIndex) {
+            item.classList.add('bg-light');
+        }
+        
+        const colorBox = document.createElement('div');
+        colorBox.style.backgroundColor = classColors[ann.class_name] || '#ff0000';
+        colorBox.style.width = '12px';
+        colorBox.style.height = '12px';
+        colorBox.style.marginRight = '5px';
+        colorBox.style.borderRadius = '2px';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = ann.class_name;
+        nameSpan.className = 'small';
+        
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'd-flex align-items-center';
+        leftDiv.appendChild(colorBox);
+        leftDiv.appendChild(nameSpan);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-sm btn-outline-danger py-0 px-1';
+        deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+        deleteBtn.onclick = function(e) {
+            e.stopPropagation();
+            annotations.splice(index, 1);
+            if (selectedAnnotationIndex === index) {
+                selectedAnnotationIndex = -1;
+            } else if (selectedAnnotationIndex > index) {
+                selectedAnnotationIndex--;
+            }
+            updateAnnotationList();
+            drawImageAndAnnotations();
+            
+            // Update annotation count
+            document.getElementById(`annotCount${currentImage.id}`).textContent = annotations.length;
+        };
+        
+        item.appendChild(leftDiv);
+        item.appendChild(deleteBtn);
+        
+        // Make the item selectable
+        item.onclick = function() {
+            selectedAnnotationIndex = index;
+            updateAnnotationList();
+            drawImageAndAnnotations();
+        };
+        
+        annotationList.appendChild(item);
+    });
+}
+
+// Zoom functions
+function zoomIn() {
+    if (!currentImage) return;
+    currentScale *= 1.2;
+    drawImageAndAnnotations();
+}
+
+function zoomOut() {
+    if (!currentImage) return;
+    currentScale *= 0.8;
+    currentScale = Math.max(0.2, currentScale); // Prevent zooming out too far
+    drawImageAndAnnotations();
+}
+
+function resetZoom() {
+    if (!currentImage) return;
+    
+    // Calculate scale to fit image to canvas with some padding
+    const containerWidth = canvas.width - 40; // 20px padding on each side
+    const containerHeight = canvas.height - 40;
+    
+    const scaleX = containerWidth / currentImage.width;
+    const scaleY = containerHeight / currentImage.height;
+    
+    // Use the smaller scale to ensure entire image fits
+    currentScale = Math.min(scaleX, scaleY);
+    
+    // Center the image
+    offsetX = (canvas.width - (currentImage.width * currentScale)) / 2;
+    offsetY = (canvas.height - (currentImage.height * currentScale)) / 2;
+    
+    drawImageAndAnnotations();
+}
+
+// Draw image and annotations
+function drawImageAndAnnotations() {
+    if (!currentImage) return;
+    
+    // Clear the entire canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw the image with current scale and offset
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(currentScale, currentScale);
+    ctx.drawImage(currentImage, 0, 0);
+    
+    // Draw annotations
+    annotations.forEach((ann, index) => {
+        const isSelected = index === selectedAnnotationIndex;
+        
+        ctx.strokeStyle = classColors[ann.class_name] || '#ff0000';
+        ctx.lineWidth = isSelected ? 3 / currentScale : 2 / currentScale;
+        
+        const x = ann.x1 * originalImageWidth;
+        const y = ann.y1 * originalImageHeight;
+        const width = (ann.x2 - ann.x1) * originalImageWidth;
+        const height = (ann.y2 - ann.y1) * originalImageHeight;
+        
+        ctx.strokeRect(x, y, width, height);
+        
+        // Draw class name
+        const textX = x;
+        const textY = y - (5 / currentScale);
+        
+        ctx.font = `${12 / currentScale}px Arial`;
+        const textWidth = ctx.measureText(ann.class_name).width + (4 / currentScale);
+        
+        // Draw text background
+        ctx.fillStyle = isSelected ? 'white' : classColors[ann.class_name] || '#ff0000';
+        ctx.fillRect(textX - (2 / currentScale), textY - (12 / currentScale), textWidth, 14 / currentScale);
+        
+        // Draw text
+        ctx.fillStyle = isSelected ? classColors[ann.class_name] || '#ff0000' : 'white';
+        ctx.fillText(ann.class_name, textX, textY);
+    });
+    
+    ctx.restore();
+}
+
+// Save annotations
+function saveAnnotations() {
+    if (!currentImage) return;
+    
+    // Show progress overlay
+    showProgress('Saving annotations...');
+    
+    fetch('/api/annotations', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            imageId: currentImage.id,
+            annotations: annotations
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideProgress();
+        
+        if (data.success) {
+            document.getElementById(`annotCount${currentImage.id}`).textContent = annotations.length;
+            
+            // Enable train button if we have annotations
+            document.getElementById('trainButton').disabled = false;
+            
+            // Show success message temporarily
+            const saveBtn = document.getElementById('saveButton');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved';
+            saveBtn.classList.remove('btn-outline-light');
+            saveBtn.classList.add('btn-success');
+            
+            setTimeout(() => {
+                saveBtn.innerHTML = originalText;
+                saveBtn.classList.remove('btn-success');
+                saveBtn.classList.add('btn-outline-light');
+            }, 2000);
+        } else {
+            alert('Failed to save annotations');
+        }
+    })
+    .catch(error => {
+        hideProgress();
+        console.error('Error:', error);
+        alert('An error occurred while saving annotations');
+    });
+}
+
+// Load annotations
+function loadAnnotations(imageId) {
+    showProgress('Loading annotations...');
+    
+    fetch(`/api/annotations/${imageId}`)
+    .then(response => response.json())
+    .then(data => {
+        annotations = data.annotations || [];
+        selectedAnnotationIndex = -1;
+        
+        // Update annotation count
+        document.getElementById(`annotCount${imageId}`).textContent = annotations.length;
+        
+        // Update annotation list
+        updateAnnotationList();
+        
+        // Draw image and annotations
+        drawImageAndAnnotations();
+        
+        hideProgress();
+    })
+    .catch(error => {
+        hideProgress();
+        console.error('Error:', error);
+        alert('An error occurred while loading annotations');
+    });
+}
+
+// Show progress overlay
+function showProgress(message) {
+    document.getElementById('progressMessage').textContent = message || 'Loading...';
+    document.getElementById('progressOverlay').style.display = 'block';
+}
+
+// Hide progress overlay
+function hideProgress() {
+    document.getElementById('progressOverlay').style.display = 'none';
+}
+
+// Start the training process
+function startTraining() {
+    // Get form values
+    const modelType = document.getElementById('modelType').value;
+    const epochs = parseInt(document.getElementById('epochs').value);
+    const imgSize = parseInt(document.getElementById('imageSize').value);
+    const batchSize = parseInt(document.getElementById('batchSize').value);
+    const validationSplit = parseFloat(document.getElementById('validationSplit').value);
+    const optimizer = document.getElementById('optimizer').value;
+    const useGPU = document.getElementById('useGPU').checked;
+    const useAugmentation = document.getElementById('useAugmentation').checked;
+    const learningRate = parseFloat(document.getElementById('learningRate').value);
+    const patience = parseInt(document.getElementById('patience').value);
+    
+    // Validate inputs
+    if (epochs < 1 || epochs > 1000) {
+        alert('Please enter a valid number of epochs (1-1000).');
+        return;
+    }
+    
+    if (batchSize < 1 || batchSize > 64) {
+        alert('Please enter a valid batch size (1-64).');
+        return;
+    }
+    
+    if (validationSplit < 0.1 || validationSplit > 0.5) {
+        alert('Validation split must be between 0.1 and 0.5.');
+        return;
+    }
+    
+    // Confirm long training duration for large models
+    if ((modelType.includes('l') || modelType.includes('x')) && epochs > 20) {
+        if (!confirm('You have selected a large model with many epochs. This may take a long time to train. Do you want to continue?')) {
+            return;
+        }
+    }
+    
+    // Prepare training data
+    const trainingData = {
+        epochs: epochs,
+        model_type: modelType,
+        use_gpu: useGPU,
+        img_size: imgSize,
+        batch_size: batchSize,
+        validation_split: validationSplit,
+        optimizer: optimizer,
+        augmentation: useAugmentation,
+        lr0: learningRate,
+        patience: patience
+    };
+    
+    // Close the modal and show training UI
+    bootstrap.Modal.getInstance(document.getElementById('trainModelModal')).hide();
+    showTrainingProgress('Preparing dataset and starting training...', 0);
+    
+    // Disable training button during training
+    document.getElementById('trainButton').disabled = true;
+    
+    // Send the training request
+    fetch(`/api/datasets/${datasetId}/train`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(trainingData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Start polling for training status
+            startPollingTrainingStatus();
+        } else {
+            hideTrainingProgress();
+            alert(`Failed to start training: ${data.error}`);
+            document.getElementById('trainButton').disabled = false;
+        }
+    })
+    .catch(error => {
+        hideTrainingProgress();
+        console.error('Error during training:', error);
+        alert('An error occurred during training. Please check the console for details.');
+        document.getElementById('trainButton').disabled = false;
+    });
+}
+
+// Show training progress UI
+function showTrainingProgress(message, progress) {
+    // Create or update training progress UI
+    let trainingUI = document.getElementById('trainingProgressContainer');
+    if (!trainingUI) {
+        trainingUI = document.createElement('div');
+        trainingUI.id = 'trainingProgressContainer';
+        trainingUI.className = 'training-progress-overlay';
+        trainingUI.innerHTML = `
+            <div class="training-progress-content">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cogs me-2"></i>
+                            Model Training in Progress
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="trainingProgressMessage" class="alert alert-info mb-3">
+                            ${message}
+                        </div>
+                        <div class="progress mb-3">
+                            <div id="trainingProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                style="width: ${progress}%"></div>
+                        </div>
+                        <div id="trainingProgressDetails" class="text-center text-muted mb-3">
+                            Initializing...
+                        </div>
+                        <div id="trainingMetrics" class="mt-3" style="display:none;">
+                            <h6>Training Metrics</h6>
+                            <table class="table table-sm table-bordered">
+                                <tbody id="metricsTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center mt-3">
+                            <button id="cancelTrainingBtn" class="btn btn-outline-danger">
+                                <i class="fas fa-times"></i> Cancel Training
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(trainingUI);
+        
+        // Add event listener to cancel button
+        document.getElementById('cancelTrainingBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to cancel the training? This will stop the process and any progress will be lost.')) {
+                // TODO: Implement cancel training API call
+                hideTrainingProgress();
+                document.getElementById('trainButton').disabled = false;
+                clearInterval(trainingStatusInterval);
+            }
+        });
+    } else {
+        document.getElementById('trainingProgressMessage').innerHTML = message;
+        document.getElementById('trainingProgressBar').style.width = `${progress}%`;
+    }
+    
+    trainingUI.style.display = 'flex';
+}
+
+// Hide training progress UI
+function hideTrainingProgress() {
+    const trainingUI = document.getElementById('trainingProgressContainer');
+    if (trainingUI) {
+        trainingUI.style.display = 'none';
+    }
+}
+
+// Global variable to store training status interval
+let trainingStatusInterval = null;
+
+// Start polling for training status
+function startPollingTrainingStatus() {
+    // Clear any existing interval
+    if (trainingStatusInterval) {
+        clearInterval(trainingStatusInterval);
+    }
+    
+    trainingStatusInterval = setInterval(() => {
+        fetch(`/api/datasets/${datasetId}/train/status`)
+            .then(response => response.json())
+            .then(data => {
+                // Update progress message and bar
+                if (data.message) {
+                    document.getElementById('trainingProgressMessage').innerHTML = data.message;
+                }
+                
+                if (data.progress !== undefined) {
+                    document.getElementById('trainingProgressBar').style.width = `${data.progress}%`;
+                }
+                
+                // Update epoch information
+                if (data.current_epoch !== undefined && data.total_epochs !== undefined) {
+                    document.getElementById('trainingProgressDetails').textContent = 
+                        `Epoch ${data.current_epoch}/${data.total_epochs} (${data.progress || 0}%)`;
+                }
+                
+                // Display metrics if available
+                if (data.metrics || data.current_metrics) {
+                    const metrics = data.metrics || data.current_metrics;
+                    if (Object.keys(metrics).length > 0) {
+                        updateTrainingMetrics(metrics);
+                    }
+                }
+                
+                // Handle status changes
+                if (data.status === 'done' || data.status === 'completed') {
+                    clearInterval(trainingStatusInterval);
+                    
+                    // Show success message with model path
+                    document.getElementById('trainingProgressMessage').innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Training completed successfully!
+                        </div>
+                    `;
+                    
+                    document.getElementById('trainingProgressBar').style.width = '100%';
+                    document.getElementById('trainingProgressBar').classList.remove('progress-bar-animated');
+                    
+                    // Change cancel button to view model button
+                    document.getElementById('cancelTrainingBtn').textContent = 'View Model';
+                    document.getElementById('cancelTrainingBtn').className = 'btn btn-primary';
+                    document.getElementById('cancelTrainingBtn').innerHTML = '<i class="fas fa-eye"></i> Test Model';
+                    
+                    // Update button to navigate to test page
+                    document.getElementById('cancelTrainingBtn').onclick = function() {
+                        // Clear any ongoing polling
+                        if (trainingStatusInterval) {
+                            clearInterval(trainingStatusInterval);
+                        }
+                        window.location.href = `/test_model?model_path=${encodeURIComponent(data.model_path)}&from_training=true`;
+                    };
+                    
+                    // Re-enable training button
+                    document.getElementById('trainButton').disabled = false;
+                    
+                } else if (data.status === 'error') {
+                    clearInterval(trainingStatusInterval);
+                    
+                    // Show error message
+                    document.getElementById('trainingProgressMessage').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            Training failed: ${data.message || 'Unknown error occurred'}
+                        </div>
+                    `;
+                    
+                    // Change cancel button to close button
+                    document.getElementById('cancelTrainingBtn').textContent = 'Close';
+                    document.getElementById('cancelTrainingBtn').onclick = function() {
+                        hideTrainingProgress();
+                        document.getElementById('trainButton').disabled = false;
+                    };
+                }
+            })
+            .catch(error => {
+                console.error('Error polling status:', error);
+                // Don't clear the interval on error, just log it and continue polling
+            });
+    }, 2000);
+}
+
+// Update training metrics display
+function updateTrainingMetrics(metrics) {
+    const metricsContainer = document.getElementById('trainingMetrics');
+    const metricsTable = document.getElementById('metricsTableBody');
+    
+    // Show the metrics container
+    metricsContainer.style.display = 'block';
+    
+    // Clear previous metrics
+    metricsTable.innerHTML = '';
+    
+    // Add metrics to table
+    for (const [key, value] of Object.entries(metrics)) {
+        if (typeof value === 'number') {
+            const row = document.createElement('tr');
+            row.innerHTML = 
+                '<td class="fw-bold">' + formatMetricName(key) + '</td>' +
+                '<td>' + formatMetricValue(value) + '</td>';
+            metricsTable.appendChild(row);
+        }
+    }
+}
+
+// Helper function to format metric names
+function formatMetricName(key) {
+    // Convert camelCase or snake_case to Title Case with spaces
+    const formatted = key
+        .replace(/_/g, ' ')
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, str => str.toUpperCase());
+    
+    // Special case formatting for common metrics
+    const metricMap = {
+        'Map50': 'mAP@50',
+        'Map50 95': 'mAP@50-95',
+        'Precision': 'Precision',
+        'Recall': 'Recall',
+        'Fitness': 'Fitness Score'
+    };
+    
+    return metricMap[formatted] || formatted;
+}
+
+// Helper function to format metric values
+function formatMetricValue(value) {
+    // Format as percentage if it's likely a percentage (between 0 and 1)
+    if (value >= 0 && value <= 1) {
+        return (value * 100).toFixed(2) + '%';
+    }
+    
+    // Format as fixed decimal otherwise
+    return value.toFixed(4);
+}
+</script>
+
+<style>
+.card {
+    border: none;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.shadow {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+    padding: 0.5rem 0.75rem;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.list-group-item.active {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+    border-color: rgba(0, 0, 0, 0.125);
+    font-weight: bold;
+}
+
+.btn:focus {
+    box-shadow: none;
+}
+
+.zoom-btn {
+    margin: 0 2px;
+    padding: 2px 5px;
+}
+
+.canvas-container {
+    transition: background-color 0.3s;
+}
+
+.canvas-container:hover {
+    background-color: #f8f9fa;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+
+.training-progress-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.training-progress-content {
+    max-width: 600px;
+    width: 100%;
+}
+</style>
+{% endblock %}

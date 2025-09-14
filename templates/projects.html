@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Projects - Griffonder{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1 class="page-title">Projects</h1>
+    <div class="actions">
+        <a href="#" class="btn btn-outline">
+            <i class="fas fa-user-plus"></i> Invite Members
+        </a>
+        <a href="{{ url_for('new_project') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Project
+        </a>
+    </div>
+</div>
+
+<div class="filter-section">
+    <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search projects">
+    </div>
+    <div class="sort-dropdown">
+        <div class="sort-dropdown-btn">
+            <span>Sort: Date Edited</span>
+            <i class="fas fa-chevron-down"></i>
+        </div>
+    </div>
+</div>
+
+<div class="projects-grid">
+    {% for project in projects %}
+    <div class="project-card">
+        <div class="project-image">
+            {% if project.preview_image %}
+            <img src="{{ url_for('get_image', filename=project.preview_image) }}" alt="{{ project.name }}">
+            {% else %}
+            <img src="{{ url_for('static', filename='images/hard-hat-sample.jpg') }}" alt="{{ project.name }}">
+            {% endif %}
+            <div class="project-type">{{ project.type }}</div>
+        </div>
+        <div class="project-details">
+            <div class="project-privacy">
+                <i class="fas fa-lock"></i> {{ project.visibility }}
+            </div>
+            <div class="project-title">
+                <a href="{{ url_for('project_detail', project_id=project.id) }}">{{ project.name }}</a>
+            </div>
+            <div class="project-meta">
+                Edited {{ project.edited }}
+            </div>
+            <div class="project-stats">
+                <div>{{ project.images|length }} Images</div>
+                <div>{{ project.models }} Models</div>
+            </div>
+            <div class="project-actions-row">
+                <a href="{{ url_for('project_detail', project_id=project.id) }}" class="card-action-btn">
+                    <i class="fas fa-eye"></i> View
+                </a>
+                <a href="{{ url_for('upload', project_id=project.id) }}" class="card-action-btn">
+                    <i class="fas fa-upload"></i> Upload
+                </a>
+                <form action="{{ url_for('delete_project', project_id=project.id) }}" method="POST" class="delete-form">
+                    <button type="submit" class="card-action-btn card-action-danger" onclick="return confirm('Are you sure you want to delete &quot;{{ project.name }}&quot;? This action cannot be undone.')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Document ready function but we don't need the dropdown menu logic anymore
+    document.addEventListener('DOMContentLoaded', function() {
+        // Search functionality could be added here
+    });
+</script>
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+    
+    .page-title {
+        font-size: 24px;
+        margin: 0;
+    }
+    
+    .actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    
+    .btn-outline {
+        border: 1px solid #ddd;
+        background: white;
+        color: #333;
+    }
+    
+    .btn-primary {
+        background: #6c5ce7;
+        color: white;
+        border: none;
+    }
+    
+    .filter-section {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+    
+    .search-box {
+        position: relative;
+        width: 300px;
+    }
+    
+    .search-box i {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+    }
+    
+    .search-box input {
+        width: 100%;
+        padding: 8px 8px 8px 35px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    
+    .sort-dropdown {
+        position: relative;
+    }
+    
+    .sort-dropdown-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    
+    .projects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    
+    .project-card {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .project-image {
+        position: relative;
+        height: 150px;
+        background: #f0f0f0;
+        overflow: hidden;
+    }
+    
+    .project-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .project-type {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+    
+    .project-details {
+        padding: 15px;
+    }
+    
+    .project-privacy {
+        font-size: 13px;
+        color: #777;
+        margin-bottom: 8px;
+    }
+    
+    .project-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .project-title a {
+        text-decoration: none;
+        color: #333;
+        font-weight: 500;
+        font-size: 16px;
+        flex-grow: 1;
+    }
+    
+    .project-meta {
+        font-size: 13px;
+        color: #777;
+        margin: 8px 0;
+    }
+    
+    .project-stats {
+        display: flex;
+        justify-content: space-between;
+        color: #777;
+        font-size: 13px;
+        margin-bottom: 15px;
+    }
+    
+    .project-actions-row {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+        border-top: 1px solid #eee;
+        padding-top: 10px;
+    }
+    
+    .card-action-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 13px;
+        text-decoration: none;
+        background: #f5f5f5;
+        color: #333;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+    }
+    
+    .card-action-btn:hover {
+        background: #e9e9e9;
+    }
+    
+    .card-action-danger {
+        color: #e74c3c;
+    }
+    
+    .card-action-danger:hover {
+        background: #fee;
+    }
+    
+    .delete-form {
+        flex: 1;
+        margin: 0;
+        padding: 0;
+    }
+</style>
+{% endblock %} 

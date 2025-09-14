@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Train Model - {{ project.name }} - Griffonder{% endblock %}
+
+{% block additional_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/train.css') }}">
+<style>
+    .action-buttons {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .btn-danger {
+        background: white;
+        border: 1px solid #ff4757;
+        color: #ff4757;
+    }
+    
+    .btn-danger:hover {
+        background: rgba(255, 71, 87, 0.1);
+    }
+    
+    .btn-warning {
+        background: white;
+        border: 1px solid #ff9f43;
+        color: #ff9f43;
+    }
+    
+    .btn-warning:hover {
+        background: rgba(255, 159, 67, 0.1);
+    }
+    
+    .status-badge.status-cancelled {
+        background-color: rgba(108, 117, 125, 0.15);
+        color: #6c757d;
+    }
+    
+    .status-badge.status-creating {
+        background-color: rgba(255, 159, 67, 0.15);
+        color: #ff9f43;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="train-container">
+    <!-- Hidden input for project ID used by JS -->
+    <input type="hidden" id="project-id" value="{{ project.id }}">
+    
+    <!-- Train header section -->
+    <div class="train-header">
+        <a href="{{ url_for('project_detail', project_id=project.id) }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> {{ project.name }}
+        </a>
+        <h1><i class="fas fa-brain"></i> Train Model</h1>
+        <div class="sidebar-item">
+            <div class="item-icon">
+                <i class="fas fa-code-branch"></i>
+            </div>
+            <span>Object Detection</span>
+            <span class="badge badge-primary">Train</span>
+        </div>
+    </div>
+    
+    <!-- Informational alert -->
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <span>You're training an object detection model with YOLOv8. This will use your annotated images to learn to identify objects.</span>
+    </div>
+    
+    <!-- Real-time training status section -->
+    <div class="realtime-training-status">
+        <div class="status-header">
+            <h2><i class="fas fa-chart-line"></i> Real-time Training Status</h2>
+            <div class="status-controls">
+                <button class="btn btn-sm btn-outline refresh-status-btn" id="refresh-status">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <div class="auto-refresh">
+                    <input type="checkbox" id="auto-refresh" checked>
+                    <label for="auto-refresh">Auto-refresh</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="active-training-models" id="training-status-container">
+            {% if training_status and training_status.status != 'idle' and training_status.status != 'none' %}
+                <div class="active-model-card" id="active-training">
+                    <div class="model-info">
+                        <div class="model-name" id="training-model-name">{{ models|selectattr('id', 'eq', training_status.model_id)|map(attribute='name')|first|default('Training Job') }}</div>
+                        <div class="model-type">{{ models|selectattr('id', 'eq', training_status.model_id)|map(attribute='model_type')|first|default('-') }}</div>
+                    </div>
+                    <div class="training-details">
+                        <div class="progress-info">
+                            <div class="progress-header">
+                                <span>Status: <span id="training-status-text">{{ training_status.status|title }}</span></span>
+                                <span class="epoch-count" id="epoch-count">{{ training_status.current_epoch|default(0) }}/{{ training_status.total_epochs|default(100) }}</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar" id="progress-bar" role="progressbar" 
+                                     style="width: {{ training_status.progress|default(0) }}%" 
+                                     aria-valuenow="{{ training_status.progress|default(0) }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">{{ training_status.progress|default(0) }}%</div>
+                            </div>
+                            <div class="status-message" id="status-message">{{ training_status.message }}</div>
+                        </div>
+                        <div class="metrics-container" id="metrics-container">
+                            {% if training_status.metrics %}
+                                {% for key, value in training_status.metrics.items() %}
+                                <div class="metric-item">
+                                    <strong>{{ key }}:</strong> 
+                                    {{ "%.4f"|format(value) }}
+                                    {% if key == "map50" %}
+                                    <div class="tooltip-container">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span class="tooltip-text">Mean Average Precision at 50% IoU threshold</span>
+                                    </div>
+                                    {% elif key == "map" %}
+                                    <div class="tooltip-container">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span class="tooltip-text">Mean Average Precision from 50% to 95% IoU thresholds</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="no-active-training" id="no-active-training">
+                    <i class="fas fa-info-circle"></i>
+                    <p>No models are currently training. Start a new training job below.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="train-content">
+        <!-- Models List Section -->
+        <div class="models-section">
+            <div class="section-header">
+                <h2><i class="fas fa-cubes"></i> My Models</h2>
+                <div class="section-actions">
+                    <div class="search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search models..." id="model-search">
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline dropdown-toggle">
+                            <i class="fas fa-sort"></i> Sort by
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="#" data-sort="date-desc">Newest first</a>
+                            <a href="#" data-sort="date-asc">Oldest first</a>
+                            <a href="#" data-sort="name">Name (A-Z)</a>
+                            <a href="#" data-sort="performance">Performance</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="models-grid">
+                {% for model in models %}
+                <div class="model-card" data-model-id="{{ model.id }}" data-status="{{ model.status }}">
+                    <div class="model-header">
+                        <div class="model-name">{{ model.name }}</div>
+                        <div class="status-badge status-{{ model.status }}">{{ model.status|title }}</div>
+                    </div>
+                    <div class="model-info">
+                        <div class="model-type">{{ model.model_type }}</div>
+                        <div class="model-date">{{ model.created_at.strftime('%b %d, %Y') }}</div>
+                    </div>
+                    
+                    {% if model.status == 'complete' %}
+                    <div class="metrics-container">
+                        {% if model.metrics %}
+                            {% set metrics = model.get_metrics() %}
+                            {% if metrics.map50 is defined %}
+                            <div class="metric-item">
+                                <strong>mAP50:</strong> {{ "%.2f"|format(metrics.map50 * 100) }}%
+                                <div class="tooltip-container">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Mean Average Precision at 50% IoU threshold</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if metrics.map is defined %}
+                            <div class="metric-item">
+                                <strong>mAP50-95:</strong> {{ "%.2f"|format(metrics.map * 100) }}%
+                                <div class="tooltip-container">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Mean Average Precision across different IoU thresholds</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="metric-item">No metrics available</div>
+                        {% endif %}
+                    </div>
+                    {% elif model.status == 'training' %}
+                    <div class="training-progress">
+                        <div class="progress-header">
+                            <span>Training progress</span>
+                            <span class="epoch-count">{{ model.current_epoch|default(0) }}/{{ model.epochs }}</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: {{ (model.current_epoch|default(0) / model.epochs * 100)|round|int }}%" 
+                                 aria-valuenow="{{ (model.current_epoch|default(0) / model.epochs * 100)|round|int }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">{{ (model.current_epoch|default(0) / model.epochs * 100)|round|int }}%</div>
+                        </div>
+                    </div>
+                    {% elif model.status == 'failed' %}
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Training failed. Check logs for details.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="model-actions action-buttons">
+                        {% if model.status == 'complete' %}
+                        <div>
+                            <a href="{{ url_for('download_model', model_id=model.id, format='pt') }}" class="btn btn-sm btn-success mr-2">
+                                <i class="fas fa-download"></i> Download
+                            </a>
+                            <button class="btn btn-sm btn-primary view-model-btn" data-model-id="{{ model.id }}">
+                                <i class="fas fa-eye"></i> View Results
+                            </button>
+                        </div>
+                        <button class="btn btn-sm btn-danger delete-model-btn" data-model-id="{{ model.id }}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        {% elif model.status == 'training' %}
+                        <div>
+                            <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                            <span class="ml-2">Training in progress...</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-warning cancel-training-btn" data-model-id="{{ model.id }}">
+                                <i class="fas fa-stop"></i> Cancel
+                            </button>
+                            <button class="btn btn-sm btn-danger delete-model-btn" data-model-id="{{ model.id }}">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                        {% elif model.status == 'failed' %}
+                        <div>
+                            <button class="btn btn-sm btn-primary retry-training-btn" data-model-id="{{ model.id }}">
+                                <i class="fas fa-redo"></i> Retry
+                            </button>
+                        </div>
+                        <button class="btn btn-sm btn-danger delete-model-btn" data-model-id="{{ model.id }}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        {% elif model.status == 'creating' or model.status == 'cancelled' %}
+                        <div>
+                            <span class="text-muted">{{ model.status|title }}...</span>
+                        </div>
+                        <button class="btn btn-sm btn-danger delete-model-btn" data-model-id="{{ model.id }}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if not models %}
+                <div class="no-models">
+                    <i class="fas fa-robot"></i>
+                    <p>No models have been trained yet. Start a new training job below.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- New Training Form Section -->
+        <div class="new-training-section">
+            <div class="section-header">
+                <h2><i class="fas fa-plus-circle"></i> New Training Job</h2>
+            </div>
+            
+            <form action="{{ url_for('train_model', project_id=project.id) }}" method="POST" id="training-form">
+                <div class="form-section">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="model_name">
+                                Model Name
+                                <div class="tooltip-container">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Give your model a unique and descriptive name</span>
+                                </div>
+                            </label>
+                            <input type="text" class="form-control" id="model_name" name="model_name" value="{{ project.name }} Model v1" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="model_type">
+                                Base Model
+                                <div class="tooltip-container">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Larger models are more accurate but require more GPU memory and training time</span>
+                                </div>
+                            </label>
+                            <select class="form-control" id="model_type" name="model_type">
+                                <option value="yolov8n.pt" selected>YOLOv8n (Nano) - Fastest</option>
+                                <option value="yolov8s.pt">YOLOv8s (Small) - Good balance</option>
+                                <option value="yolov8m.pt">YOLOv8m (Medium) - Better accuracy</option>
+                                <option value="yolov8l.pt">YOLOv8l (Large) - High accuracy</option>
+                                <option value="yolov8x.pt">YOLOv8x (XLarge) - Best accuracy</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label for="epochs">
+                                Epochs
+                                <div class="tooltip-container">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">One epoch = one complete pass through the entire training dataset</span>
+                                </div>
+                            </label>
+                            <input type="number" class="form-control" id="epochs" name="epochs" value="100" min="1" max="1000">
+                            <small class="form-text text-muted">More epochs = better results but longer training</small>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="batch_size">
+                                Batch Size
+                                <div class="tooltip-container">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Number of images processed together in each training step</span>
+                                </div>
+                            </label>
+                            <input type="number" class="form-control" id="batch_size" name="batch_size" value="16" min="1" max="128">
+                            <small class="form-text text-muted">Higher values use more GPU memory</small>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="img_size">
+                                Image Size
+                                <div class="tooltip-container">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Images will be resized to this size during training</span>
+                                </div>
+                            </label>
+                            <input type="number" class="form-control" id="img_size" name="img_size" value="640" min="320" max="1280" step="32">
+                            <small class="form-text text-muted">Higher values may improve accuracy</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label for="device">
+                                Training Device
+                                <div class="tooltip-container">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Select the device to use for training (CPU or GPU)</span>
+                                </div>
+                            </label>
+                            <select class="form-control" id="device" name="device">
+                                <option value="auto">Auto-detect (recommended)</option>
+                                <option value="0">GPU 0</option>
+                                <option value="cpu">CPU</option>
+                                <option value="-1">Most idle GPU</option>
+                                <option value="mps">Apple M-series (MPS)</option>
+                            </select>
+                            <small class="form-text text-muted">GPU is much faster than CPU for training</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Start Training
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/model_training.js') }}"></script>
+{% endblock %} 

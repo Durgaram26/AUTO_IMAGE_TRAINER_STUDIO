@@ -1,0 +1,12 @@
+                <a href="{{ url_for('analytics', project_id=project.id) }}" class="sidebar-item {% if request.endpoint == 'analytics' %}active{% endif %}">
+                    <div class="item-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <span>Analytics</span>
+                </a>
+                <a href="{{ url_for('classes', project_id=project.id) }}" class="sidebar-item {% if request.endpoint == 'classes' %}active{% endif %}">
+                    <div class="item-icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <span>Classes & Tags</span>
+                </a> 

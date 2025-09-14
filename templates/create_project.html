@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Create Project - Griffonder{% endblock %}
+
+{% block content %}
+<div class="create-project-container">
+    <div class="create-project-header">
+        <h1>Let's create your project.</h1>
+        <div class="project-owner">
+            <i class="fas fa-user"></i> {{ current_user.name }} • <span class="visibility">Public</span>
+        </div>
+    </div>
+    
+    <form action="{{ url_for('create_project') }}" method="post" class="create-project-form">
+        <div class="form-row">
+            <div class="form-group project-name">
+                <label for="project_name">Project Name <span class="required">*</span></label>
+                <input type="text" id="project_name" name="project_name" placeholder="E.g. 'Dog Breeds' or 'Car Models' or 'Text Finder'" required>
+                <div class="input-hint">Name cannot be empty.</div>
+            </div>
+            
+            <div class="form-group annotation-group">
+                <label for="annotation_group">Annotation Group <i class="fas fa-question-circle" title="Group of annotations to be used"></i></label>
+                <input type="text" id="annotation_group" name="annotation_group" placeholder="E.g. 'dogs' or 'cars' or 'words'">
+            </div>
+            
+            <div class="form-group license">
+                <label for="license">License <i class="fas fa-question-circle" title="License for your project"></i></label>
+                <select id="license" name="license">
+                    <option value="cc-by-4.0">CC BY 4.0</option>
+                    <option value="mit">MIT</option>
+                    <option value="apache-2.0">Apache 2.0</option>
+                    <option value="gpl-3.0">GPL 3.0</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="project-type-section">
+            <h2>Project Type</h2>
+            
+            <div class="project-types">
+                <div class="project-type-card active" data-type="object-detection">
+                    <div class="project-type-header">
+                        <h3>Object Detection</h3>
+                        <div class="project-type-features">
+                            <span class="feature"><i class="fas fa-square-full"></i> Bounding Boxes</span>
+                            <span class="feature"><i class="fas fa-hashtag"></i> Counts</span>
+                            <span class="feature"><i class="fas fa-location-arrow"></i> Tracking</span>
+                        </div>
+                    </div>
+                    <p class="project-type-desc">Identify objects and their positions with bounding boxes.</p>
+                    <input type="radio" name="project_type" value="object-detection" checked style="display: none;">
+                </div>
+                
+                <div class="project-type-card" data-type="classification">
+                    <div class="project-type-header">
+                        <h3>Classification</h3>
+                        <div class="project-type-features">
+                            <span class="feature"><i class="fas fa-image"></i> Image Labels</span>
+                            <span class="feature"><i class="fas fa-filter"></i> Filtering</span>
+                            <span class="feature"><i class="fas fa-shield-alt"></i> Content Moderation</span>
+                        </div>
+                    </div>
+                    <p class="project-type-desc">Assign labels to the entire image.</p>
+                    <input type="radio" name="project_type" value="classification" style="display: none;">
+                </div>
+                
+                <div class="project-type-card" data-type="segmentation">
+                    <div class="project-type-header">
+                        <h3>Instance Segmentation</h3>
+                        <div class="project-type-features">
+                            <span class="feature"><i class="fas fa-draw-polygon"></i> Polygons</span>
+                            <span class="feature"><i class="fas fa-ruler-combined"></i> Measuring</span>
+                            <span class="feature"><i class="fas fa-shapes"></i> Odd Shapes</span>
+                        </div>
+                    </div>
+                    <p class="project-type-desc">Detect multiple objects and their actual shape.</p>
+                    <input type="radio" name="project_type" value="segmentation" style="display: none;">
+                </div>
+                
+                <div class="project-type-card" data-type="keypoint">
+                    <div class="project-type-header">
+                        <h3>Keypoint Detection</h3>
+                        <div class="project-type-features">
+                            <span class="feature"><i class="fas fa-vector-square"></i> Skeleton Structure</span>
+                            <span class="feature"><i class="fas fa-male"></i> Pose Estimation</span>
+                        </div>
+                    </div>
+                    <p class="project-type-desc">Identify keypoints ("skeletons") on subjects.</p>
+                    <input type="radio" name="project_type" value="keypoint" style="display: none;">
+                </div>
+                
+                <div class="project-type-card" data-type="multimodal">
+                    <div class="project-type-header">
+                        <h3>Multimodal</h3>
+                        <div class="project-type-features">
+                            <span class="feature"><i class="fas fa-comment-alt"></i> Prompts</span>
+                            <span class="feature"><i class="fas fa-question"></i> Visual Question Answering</span>
+                            <span class="feature"><i class="fas fa-closed-captioning"></i> Captions</span>
+                        </div>
+                    </div>
+                    <p class="project-type-desc">Describe images using text pairs.</p>
+                    <input type="radio" name="project_type" value="multimodal" style="display: none;">
+                </div>
+                
+                <div class="project-type-card" data-type="semantic">
+                    <div class="project-type-header">
+                        <h3>Semantic Segmentation</h3>
+                        <div class="project-type-features">
+                            <span class="feature"><i class="fas fa-robot"></i> Robotics</span>
+                            <span class="feature"><i class="fas fa-car"></i> Autonomous Driving</span>
+                        </div>
+                    </div>
+                    <p class="project-type-desc">Assign every pixel to a label. Often inferior to instance segmentation.</p>
+                    <input type="radio" name="project_type" value="semantic" style="display: none;">
+                </div>
+            </div>
+            
+            <div class="show-less-btn">
+                <span>Show Less <i class="fas fa-chevron-up"></i></span>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Public Project</button>
+        </div>
+    </form>
+    
+    <div class="project-preview">
+        <img src="{{ url_for('static', filename='images/project-preview.jpg') }}" alt="Project Preview">
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    .create-project-container {
+        display: flex;
+        flex-direction: column;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .create-project-header {
+        margin-bottom: 30px;
+    }
+    
+    .create-project-header h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+    
+    .project-owner {
+        color: #666;
+    }
+    
+    .visibility {
+        background-color: #e8f0fe;
+        color: #4285f4;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .form-group label {
+        font-weight: 500;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .form-group input, .form-group select {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .project-name {
+        flex: 3;
+    }
+    
+    .annotation-group {
+        flex: 3;
+    }
+    
+    .license {
+        flex: 2;
+    }
+    
+    .required {
+        color: red;
+    }
+    
+    .input-hint {
+        color: #ff0000;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+    
+    .project-type-section h2 {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+    
+    .project-types {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    
+    .project-type-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        cursor: pointer;
+        transition: border-color 0.3s;
+    }
+    
+    .project-type-card:hover, .project-type-card.active {
+        border-color: #6c5ce7;
+        background-color: #f9f8ff;
+    }
+    
+    .project-type-header {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .project-type-header h3 {
+        font-size: 16px;
+        margin: 0;
+    }
+    
+    .project-type-features {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .feature {
+        font-size: 12px;
+        background-color: #f0f0f0;
+        padding: 2px 8px;
+        border-radius: 4px;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .project-type-desc {
+        color: #666;
+        font-size: 14px;
+        margin: 0;
+    }
+    
+    .show-less-btn {
+        text-align: center;
+        margin-top: 20px;
+        color: #6c5ce7;
+        cursor: pointer;
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 30px;
+    }
+    
+    .btn-secondary {
+        background-color: white;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+    
+    .project-preview {
+        margin-top: 30px;
+    }
+    
+    .project-preview img {
+        width: 100%;
+        max-width: 800px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const projectTypeCards = document.querySelectorAll('.project-type-card');
+        
+        projectTypeCards.forEach(card => {
+            card.addEventListener('click', function() {
+                // Remove active class from all cards
+                projectTypeCards.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked card
+                this.classList.add('active');
+                
+                // Check the radio input
+                const radio = this.querySelector('input[type="radio"]');
+                radio.checked = true;
+            });
+        });
+    });
+</script>
+{% endblock %} 

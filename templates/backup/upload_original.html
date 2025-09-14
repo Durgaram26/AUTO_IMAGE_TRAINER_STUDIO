@@ -1,0 +1,625 @@
+{% extends "base.html" %}
+
+{% block title %}Upload - Griffonder{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <div class="upload-header">
+        <h1><i class="fas fa-upload"></i> Upload</h1>
+    </div>
+    
+    <div class="upload-form-container">
+        <div class="upload-form">
+            <form action="{{ url_for('upload', project_id=project.id) }}" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="batch_name">Batch Name:</label>
+                    <input type="text" id="batch_name" name="batch_name" value="Uploaded on {{ current_date }}" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="tags">Tags: <i class="fas fa-question-circle" title="Optional tags to categorize your images"></i></label>
+                    <input type="text" id="tags" name="tags" placeholder="Search or add tags for images..." class="form-control">
+                </div>
+                
+                <div class="upload-drop-zone" id="drop-zone">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h3>Drag and drop file(s) to upload, or:</h3>
+                    <div class="upload-buttons">
+                        <label for="file-input" class="btn btn-primary btn-large">
+                            <i class="fas fa-file"></i> Select Images
+                        </label>
+                        <input type="file" id="file-input" name="files[]" multiple style="display: none;" accept="image/*">
+                        
+                        <label for="folder-input" class="btn btn-outline btn-large">
+                            <i class="fas fa-folder"></i> Select Folder
+                        </label>
+                        <input type="file" id="folder-input" name="files[]" webkitdirectory directory multiple style="display: none;">
+                    </div>
+                    <div class="selected-files-count" id="selected-files-count" style="display: none;">
+                        <div class="files-icon"><i class="fas fa-images"></i></div>
+                        <div class="count-text"><span id="files-count-number">0</span> files selected</div>
+                    </div>
+                    <div class="upload-file-list" id="file-list"></div>
+                    <div class="supported-formats">
+                        <div class="format-group">
+                            <div class="format-title">
+                                <i class="fas fa-image"></i> Images
+                            </div>
+                            <div class="format-tags">
+                                .jpg, .png, .bmp, .webp, .avif
+                            </div>
+                            <div class="format-note">*Max size of 20MB and 10,000 pixels per dimension.</div>
+                        </div>
+                        <div class="format-group">
+                            <div class="format-title">
+                                <i class="fas fa-file-alt"></i> Annotations
+                            </div>
+                            <div class="format-tags">
+                                <i class="fas fa-check-circle"></i> 22 formats
+                            </div>
+                        </div>
+                        <div class="format-group">
+                            <div class="format-title">
+                                <i class="fas fa-video"></i> Videos
+                            </div>
+                            <div class="format-tags">
+                                .mov, .mp4
+                            </div>
+                        </div>
+                        <div class="format-group">
+                            <div class="format-title">
+                                <i class="fas fa-file-pdf"></i> PDFs
+                            </div>
+                            <div class="format-tags">
+                                .pdf
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="upload-btn" disabled>
+                        <i class="fas fa-upload"></i> Upload Files <span id="file-count">(0)</span>
+                    </button>
+                </div>
+            </form>
+            
+            <div class="upload-alternatives">
+                <h3>Need images to get started? We've got you covered.</h3>
+                
+                <div class="search-universe">
+                    <div class="search-universe-badge">
+                        <i class="fas fa-search"></i> Search on Griffonder Universe: World's Largest Platform for Computer Vision Data
+                    </div>
+                    <div class="search-input-container">
+                        <input type="text" placeholder="Search images and annotations from 600k datasets and 400 million images (e.g. cars, people)" class="form-control search-input">
+                        <button class="search-btn"><i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                
+                <div class="import-youtube">
+                    <div class="import-youtube-title">
+                        <i class="fab fa-youtube"></i> Import YouTube Video
+                    </div>
+                    <div class="import-input-container">
+                        <input type="text" placeholder="e.g. https://www.youtube.com/watch?v=9DwAw9WgXcQ" class="form-control import-input">
+                        <button class="search-btn"><i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                
+                <div class="alternative-options">
+                    <div class="alternative-option">
+                        <i class="fas fa-code"></i> Collect images via the Upload API
+                    </div>
+                    <div class="alternative-option">
+                        <i class="fas fa-cloud"></i> Import From Cloud Providers
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    .upload-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .upload-header {
+        margin-bottom: 20px;
+    }
+    
+    .upload-header h1 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 24px;
+    }
+    
+    .upload-form-container {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        padding: 30px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    
+    .upload-drop-zone {
+        border: 2px dashed #6c5ce7;
+        border-radius: 10px;
+        padding: 40px;
+        text-align: center;
+        margin-bottom: 30px;
+        background-color: #f8f7ff;
+        transition: all 0.3s ease;
+    }
+    
+    .upload-drop-zone.highlight {
+        border-color: #4834d4;
+        background-color: #f0eeff;
+    }
+    
+    .upload-icon {
+        font-size: 60px;
+        color: #6c5ce7;
+        margin-bottom: 20px;
+    }
+    
+    .upload-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin: 20px 0;
+    }
+    
+    .btn-large {
+        padding: 12px 24px;
+        font-size: 16px;
+    }
+    
+    .selected-files-count {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin: 20px 0;
+        padding: 10px;
+        background-color: #e6e3ff;
+        border-radius: 8px;
+        color: #4834d4;
+        font-weight: 500;
+    }
+    
+    .files-icon {
+        font-size: 20px;
+    }
+    
+    .upload-file-list {
+        margin: 20px 0;
+        text-align: left;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .file-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px;
+        border-radius: 4px;
+        background: #f1f1f1;
+        margin-bottom: 8px;
+    }
+    
+    .file-item .file-name {
+        flex-grow: 1;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .file-item .file-size {
+        color: #666;
+        font-size: 12px;
+        width: 70px;
+        text-align: right;
+    }
+    
+    .file-item .file-remove {
+        color: #ff4d4d;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    
+    .supported-formats {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .format-group {
+        text-align: left;
+    }
+    
+    .format-title {
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: 5px;
+    }
+    
+    .format-tags {
+        font-size: 13px;
+        color: #555;
+    }
+    
+    .format-note {
+        font-size: 12px;
+        color: #888;
+        margin-top: 5px;
+    }
+    
+    .form-actions {
+        margin-top: 20px;
+        text-align: right;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-outline {
+        background: white;
+        color: #6c5ce7;
+        border: 1px solid #6c5ce7;
+    }
+    
+    .btn-primary {
+        background: #6c5ce7;
+        color: white;
+        border: none;
+    }
+    
+    .btn-primary:disabled {
+        background: #d0cdf7;
+        cursor: not-allowed;
+    }
+    
+    .upload-alternatives {
+        margin-top: 30px;
+    }
+    
+    .upload-alternatives h3 {
+        font-size: 16px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .search-universe {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .search-universe-badge {
+        background-color: #6c5ce7;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 15px;
+        border-radius: 50px;
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+    
+    .search-input-container, .import-input-container {
+        display: flex;
+        margin-top: 10px;
+    }
+    
+    .search-input, .import-input {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    
+    .search-btn {
+        background-color: #6c5ce7;
+        color: white;
+        border: none;
+        border-top-right-radius: 6px;
+        border-bottom-right-radius: 6px;
+        padding: 0 20px;
+        cursor: pointer;
+    }
+    
+    .import-youtube {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .import-youtube-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+        margin-bottom: 10px;
+    }
+    
+    .fab.fa-youtube {
+        color: #ff0000;
+    }
+    
+    .alternative-options {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        margin-top: 20px;
+    }
+    
+    .alternative-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #6c5ce7;
+        font-weight: 500;
+        cursor: pointer;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Format current date
+        const now = new Date();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = months[now.getMonth()];
+        const day = now.getDate();
+        const year = now.getFullYear();
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const formattedHours = hours % 12 || 12;
+        const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+        const formattedDate = `${month}/${day}/${year} at ${formattedHours}:${formattedMinutes} ${ampm}`;
+        
+        document.getElementById('batch_name').value = 'Uploaded on ' + formattedDate;
+        
+        // Global variables
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const folderInput = document.getElementById('folder-input');
+        const fileList = document.getElementById('file-list');
+        const fileCount = document.getElementById('file-count');
+        const uploadBtn = document.getElementById('upload-btn');
+        const selectedFilesCount = document.getElementById('selected-files-count');
+        const filesCountNumber = document.getElementById('files-count-number');
+        const uploadForm = document.querySelector('form');
+        
+        let selectedFiles = [];
+        let lastInputUsed = null;
+
+        // Custom form submission to ensure files are properly included
+        uploadForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (selectedFiles.length === 0) {
+                alert('Please select files to upload');
+                return;
+            }
+
+            console.log("Submitting form with", selectedFiles.length, "files");
+            
+            // Create a new FormData object from the form
+            const formData = new FormData();
+            
+            // Add form fields
+            formData.append('batch_name', document.getElementById('batch_name').value);
+            formData.append('tags', document.getElementById('tags').value);
+            
+            // Add all selected files to the form data
+            for (let i = 0; i < selectedFiles.length; i++) {
+                formData.append('files[]', selectedFiles[i]);
+                console.log("Added file:", selectedFiles[i].name);
+            }
+            
+            // Show loading indication
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+            
+            // Submit the form manually using fetch API
+            fetch(uploadForm.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log("Response received:", response.status);
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    return response.text();
+                }
+            })
+            .then(html => {
+                if (html) {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred during upload. Please try again.');
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Files <span id="file-count">(' + selectedFiles.length + ')</span>';
+            });
+        });
+        
+        // Add highlight class on drag over
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('highlight');
+        });
+        
+        // Remove highlight class on drag leave
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('highlight');
+        });
+        
+        // Handle drop event
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('highlight');
+            
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            handleFiles(files);
+        });
+        
+        // Handle folder selection
+        folderInput.addEventListener('change', function(e) {
+            console.log("Folder input change:", this.files.length, "files");
+            handleFiles(this.files);
+            lastInputUsed = 'folder';
+        });
+        
+        // Handle file selection
+        fileInput.addEventListener('change', function(e) {
+            console.log("File input change:", this.files.length, "files");
+            handleFiles(this.files);
+            lastInputUsed = 'file';
+        });
+        
+        // Process selected files
+        function handleFiles(files) {
+            console.log("Handling", files.length, "files");
+            
+            if (files.length > 0) {
+                // Don't clear previous files for folder uploads to allow multiple selections
+                if (lastInputUsed !== 'folder' || selectedFiles.length === 0) {
+                    selectedFiles = [];
+                    fileList.innerHTML = '';
+                }
+                
+                // Add files to the list
+                let validFilesCount = 0;
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    // Check if file is an image
+                    if (file.type.match('image.*') || 
+                        file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/)) {
+                        selectedFiles.push(file);
+                        addFileToList(file);
+                        validFilesCount++;
+                    } else {
+                        console.log("Skipping non-image file:", file.name, file.type);
+                    }
+                }
+                
+                if (validFilesCount === 0) {
+                    alert('No valid image files were selected. Supported formats: jpg, jpeg, png, gif, bmp, webp, avif');
+                }
+                
+                updateFileCount();
+            }
+        }
+        
+        // Add file to the list
+        function addFileToList(file) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            
+            const fileName = document.createElement('div');
+            fileName.className = 'file-name';
+            fileName.textContent = file.name;
+            
+            const fileSize = document.createElement('div');
+            fileSize.className = 'file-size';
+            fileSize.textContent = formatFileSize(file.size);
+            
+            const removeBtn = document.createElement('div');
+            removeBtn.className = 'file-remove';
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            removeBtn.onclick = function() {
+                // Remove file from selectedFiles array
+                selectedFiles = selectedFiles.filter(f => !(f.name === file.name && f.size === file.size));
+                fileItem.remove();
+                updateFileCount();
+            };
+            
+            fileItem.appendChild(fileName);
+            fileItem.appendChild(fileSize);
+            fileItem.appendChild(removeBtn);
+            
+            fileList.appendChild(fileItem);
+        }
+        
+        // Update file count and enable/disable upload button
+        function updateFileCount() {
+            console.log("Updating file count to", selectedFiles.length);
+            fileCount.textContent = `(${selectedFiles.length})`;
+            filesCountNumber.textContent = selectedFiles.length;
+            
+            if (selectedFiles.length > 0) {
+                uploadBtn.disabled = false;
+                selectedFilesCount.style.display = 'flex';
+            } else {
+                uploadBtn.disabled = true;
+                selectedFilesCount.style.display = 'none';
+            }
+        }
+        
+        // Format file size in human-readable format
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    });
+</script>
+{% endblock %} 

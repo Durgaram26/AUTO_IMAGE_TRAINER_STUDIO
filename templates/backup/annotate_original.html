@@ -1,0 +1,1119 @@
+{% extends "base.html" %}
+
+{% block title %}Annotate - Griffonder{% endblock %}
+
+{% block content %}
+<div class="annotation-container">
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>{{ project.name }}</h2>
+            <p>Object Detection</p>
+        </div>
+        
+        <div class="sidebar-menu">
+            <div class="menu-item active">
+                <i class="fas fa-pen"></i>
+                <span>Annotate</span>
+            </div>
+            <div class="menu-item">
+                <i class="fas fa-database"></i>
+                <span>Dataset</span>
+                <span class="badge">{{ image_count }}</span>
+            </div>
+            <div class="menu-item">
+                <i class="fas fa-code-branch"></i>
+                <span>Versions</span>
+                <span class="tag">Train</span>
+            </div>
+            <div class="menu-item">
+                <i class="fas fa-chart-bar"></i>
+                <span>Analytics</span>
+            </div>
+            <div class="menu-item">
+                <i class="fas fa-tag"></i>
+                <span>Classes & Tags</span>
+            </div>
+        </div>
+        
+        <div class="sidebar-header">
+            <h3>MODELS</h3>
+        </div>
+        
+        <div class="sidebar-menu">
+            <div class="menu-item">
+                <i class="fas fa-cube"></i>
+                <span>Models</span>
+            </div>
+            <div class="menu-item">
+                <i class="fas fa-eye"></i>
+                <span>Visualize</span>
+            </div>
+        </div>
+        
+        <div class="sidebar-header">
+            <h3>DEPLOY</h3>
+        </div>
+        
+        <div class="sidebar-menu">
+            <div class="menu-item">
+                <i class="fas fa-rocket"></i>
+                <span>Deployments</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-bar">
+            <div class="batch-info">
+                <h2>Batch Name: {{ current_image.batch_name if current_image.batch_name else 'Uploaded on ' + current_image.uploaded_at.strftime('%m/%d/%y at %I:%M %p') }}</h2>
+                <p>Uploaded On: {{ current_image.uploaded_at.strftime('%b %d, %Y %I:%M %p') }}</p>
+            </div>
+            
+            <div class="right-controls">
+                <button id="label-options-btn" class="btn btn-primary">Start Annotating</button>
+            </div>
+        </div>
+        
+        <div class="image-grid">
+            {% for image in images %}
+            <div class="image-card {% if image.id == current_image.id %}selected{% endif %}" data-image-id="{{ image.id }}">
+                <div class="image-container">
+                    <img src="{{ url_for('get_image', filename=image.filename) }}" alt="{{ image.original_filename }}">
+                    {% if image.annotations_count > 0 %}
+                    <div class="annotation-badge">{{ image.annotations_count }}</div>
+                    {% endif %}
+                </div>
+                <div class="image-filename">{{ image.filename }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Right Panel (initially hidden) -->
+    <div class="label-panel" id="label-panel">
+        <div class="label-panel-header">
+            <h3>How do you want to label your images?</h3>
+            <button class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div class="label-option">
+            <h4>Auto Label <span class="beta-badge">Beta</span></h4>
+            <p>Use your custom model or a zero-shot model to label an entire batch.</p>
+            <button class="btn btn-outline"><i class="fas fa-magic"></i> Start Auto Label</button>
+        </div>
+        
+        <div class="label-option">
+            <h4>Manual Labeling</h4>
+            <p>You and your team label your own images with help from our AI labeling tools.</p>
+            <button class="btn btn-outline"><i class="fas fa-pen"></i> Start Manual Labeling</button>
+        </div>
+        
+        <div class="label-option">
+            <h4>Roboflow Labeling <span class="service-badge">Service</span></h4>
+            <p>Work with a professional team of human labelers.</p>
+            <button class="btn btn-outline"><i class="fas fa-info-circle"></i> Get Details</button>
+        </div>
+    </div>
+</div>
+
+<!-- Image Labeling Modal (hidden by default) -->
+<div id="annotation-modal" class="annotation-modal" style="display: none;">
+    <div class="annotation-header">
+        <div class="annotation-nav">
+            <button class="nav-btn" id="prev-image-btn"><i class="fas fa-chevron-left"></i></button>
+            <span>Image <span id="current-image-pos">{{ image_position }}</span> of <span id="total-images">{{ image_count }}</span></span>
+            <button class="nav-btn" id="next-image-btn"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="annotation-actions">
+            <button class="action-btn" id="save-btn"><i class="fas fa-save"></i> Save</button>
+            <button class="action-btn" id="close-annotation-btn"><i class="fas fa-times"></i> Close</button>
+        </div>
+    </div>
+    
+    <div class="annotation-content">
+        <div class="tools-panel">
+            <div class="tools-header">
+                <h3>Tools</h3>
+            </div>
+            <div class="tool-buttons">
+                <button class="tool-btn active" data-tool="box"><i class="fas fa-vector-square"></i> Box</button>
+                <button class="tool-btn" data-tool="polygon"><i class="fas fa-draw-polygon"></i> Polygon</button>
+                <button class="tool-btn" data-tool="keypoint"><i class="fas fa-dot-circle"></i> Keypoint</button>
+            </div>
+            <div class="class-list">
+                <h3>Classes</h3>
+                {% for class in classes %}
+                <div class="class-item" data-class-id="{{ class.id }}">
+                    <div class="class-color" style="background-color: {{ class.color }};"></div>
+                    <div class="class-name">{{ class.name }}</div>
+                </div>
+                {% endfor %}
+                <button class="add-class-btn"><i class="fas fa-plus"></i> Add Class</button>
+            </div>
+        </div>
+        
+        <div class="image-workspace">
+            <div class="image-container">
+                <img id="annotation-image" src="{{ url_for('get_image', filename=current_image.filename) }}" alt="{{ current_image.original_filename }}">
+                <canvas id="annotation-canvas"></canvas>
+            </div>
+        </div>
+        
+        <div class="annotations-panel">
+            <div class="annotations-header">
+                <h3>Annotations</h3>
+                <button class="btn btn-sm" id="clear-all-btn"><i class="fas fa-trash"></i> Clear All</button>
+            </div>
+            <div class="annotations-list" id="annotations-list">
+                <!-- Annotations will be populated here via JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    /* General Layout */
+    .annotation-container {
+        display: flex;
+        height: calc(100vh - 64px);
+        overflow: hidden;
+        position: relative;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+        width: 220px;
+        min-width: 220px;
+        background-color: #0d1117;
+        color: #c9d1d9;
+        height: 100%;
+        overflow-y: auto;
+        border-right: 1px solid #30363d;
+    }
+    
+    .sidebar-header {
+        padding: 15px;
+        border-bottom: 1px solid #30363d;
+    }
+    
+    .sidebar-header h2 {
+        font-size: 16px;
+        margin: 0 0 5px 0;
+    }
+    
+    .sidebar-header h3 {
+        font-size: 12px;
+        color: #8b949e;
+        margin: 20px 0 10px 0;
+    }
+    
+    .sidebar-header p {
+        font-size: 13px;
+        color: #8b949e;
+        margin: 0;
+    }
+    
+    .sidebar-menu {
+        padding: 10px 0;
+    }
+    
+    .menu-item {
+        padding: 10px 15px;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    
+    .menu-item:hover {
+        background-color: #1f2937;
+    }
+    
+    .menu-item.active {
+        background-color: #1f2937;
+        border-left: 3px solid #6c5ce7;
+    }
+    
+    .menu-item i {
+        width: 20px;
+        margin-right: 10px;
+    }
+    
+    .menu-item .badge {
+        margin-left: auto;
+        background-color: #30363d;
+        color: #c9d1d9;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 12px;
+    }
+    
+    .menu-item .tag {
+        margin-left: auto;
+        background-color: #6c5ce7;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+    }
+    
+    /* Main Content */
+    .main-content {
+        flex-grow: 1;
+        overflow-y: auto;
+        background-color: #f8f9fa;
+        padding: 0;
+    }
+    
+    .top-bar {
+        padding: 15px 20px;
+        background-color: white;
+        border-bottom: 1px solid #e1e4e8;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .batch-info h2 {
+        font-size: 18px;
+        margin: 0 0 5px 0;
+    }
+    
+    .batch-info p {
+        font-size: 14px;
+        color: #666;
+        margin: 0;
+    }
+    
+    .right-controls {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-primary {
+        background-color: #6c5ce7;
+        color: white;
+        border: none;
+    }
+    
+    .btn-outline {
+        background-color: white;
+        color: #6c5ce7;
+        border: 1px solid #6c5ce7;
+    }
+    
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+    
+    /* Image Grid */
+    .image-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 15px;
+        padding: 20px;
+    }
+    
+    .image-card {
+        border-radius: 6px;
+        overflow: hidden;
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+    }
+    
+    .image-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    }
+    
+    .image-card.selected {
+        box-shadow: 0 0 0 2px #6c5ce7, 0 3px 6px rgba(0,0,0,0.15);
+    }
+    
+    .image-container {
+        height: 160px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .image-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .annotation-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background-color: #6c5ce7;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .image-filename {
+        padding: 8px;
+        font-size: 12px;
+        color: #666;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: center;
+    }
+    
+    /* Label Panel */
+    .label-panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 350px;
+        height: 100%;
+        background-color: white;
+        box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+        z-index: 100;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .label-panel.open {
+        transform: translateX(0);
+    }
+    
+    .label-panel-header {
+        padding: 15px;
+        border-bottom: 1px solid #e1e4e8;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .label-panel-header h3 {
+        font-size: 16px;
+        margin: 0;
+    }
+    
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: #666;
+    }
+    
+    .label-option {
+        padding: 20px;
+        border-bottom: 1px solid #e1e4e8;
+    }
+    
+    .label-option h4 {
+        font-size: 16px;
+        margin: 0 0 10px 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .beta-badge {
+        background-color: #6c5ce7;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        margin-left: 10px;
+    }
+    
+    .service-badge {
+        background-color: #f1c40f;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        margin-left: 10px;
+    }
+    
+    .label-option p {
+        font-size: 14px;
+        color: #666;
+        margin: 0 0 15px 0;
+    }
+    
+    /* Annotation Modal */
+    .annotation-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f8f9fa;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .annotation-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+        background-color: white;
+        border-bottom: 1px solid #e1e4e8;
+    }
+    
+    .annotation-nav {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .nav-btn {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: #333;
+    }
+    
+    .annotation-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .action-btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background-color: #f5f5f5;
+        border: 1px solid #ddd;
+        color: #333;
+    }
+    
+    .action-btn:hover {
+        background-color: #e9ecef;
+    }
+    
+    .annotation-content {
+        display: flex;
+        flex-grow: 1;
+        overflow: hidden;
+    }
+    
+    .tools-panel {
+        width: 220px;
+        min-width: 220px;
+        background-color: white;
+        border-right: 1px solid #e1e4e8;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .tools-header {
+        padding: 15px;
+        border-bottom: 1px solid #e1e4e8;
+    }
+    
+    .tools-header h3 {
+        margin: 0;
+        font-size: 16px;
+    }
+    
+    .tool-buttons {
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        border-bottom: 1px solid #e1e4e8;
+    }
+    
+    .tool-btn {
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background-color: #f5f5f5;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+    
+    .tool-btn.active {
+        background-color: #6c5ce7;
+        color: white;
+        border-color: #6c5ce7;
+    }
+    
+    .class-list {
+        padding: 15px;
+        flex-grow: 1;
+        overflow-y: auto;
+    }
+    
+    .class-list h3 {
+        margin: 0 0 15px 0;
+        font-size: 16px;
+    }
+    
+    .class-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 8px;
+    }
+    
+    .class-item:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .class-item.active {
+        background-color: #f0eeff;
+    }
+    
+    .class-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+    }
+    
+    .add-class-btn {
+        padding: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background-color: white;
+        border: 1px dashed #ddd;
+        color: #666;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .image-workspace {
+        flex-grow: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #f0f0f0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .image-workspace .image-container {
+        position: relative;
+        margin: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        height: auto;
+        max-height: calc(100% - 40px);
+        max-width: calc(100% - 40px);
+    }
+    
+    .image-workspace .image-container img {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+    }
+    
+    #annotation-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+    
+    .annotations-panel {
+        width: 250px;
+        min-width: 250px;
+        background-color: white;
+        border-left: 1px solid #e1e4e8;
+        overflow-y: auto;
+    }
+    
+    .annotations-header {
+        padding: 15px;
+        border-bottom: 1px solid #e1e4e8;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .annotations-header h3 {
+        margin: 0;
+        font-size: 16px;
+    }
+    
+    .annotations-list {
+        padding: 15px;
+    }
+    
+    .annotation-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 8px;
+        border: 1px solid #e1e4e8;
+    }
+    
+    .annotation-item:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .annotation-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+    }
+    
+    .annotation-details {
+        flex-grow: 1;
+        font-size: 13px;
+    }
+    
+    .annotation-actions {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .annotation-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #666;
+        font-size: 14px;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elements
+    const labelOptionsBtn = document.getElementById('label-options-btn');
+    const labelPanel = document.getElementById('label-panel');
+    const closeLabelPanelBtn = document.querySelector('.label-panel .close-btn');
+    const annotationModal = document.getElementById('annotation-modal');
+    const closeAnnotationBtn = document.getElementById('close-annotation-btn');
+    const startManualBtn = document.querySelector('.label-option:nth-child(2) .btn');
+    const imageCards = document.querySelectorAll('.image-card');
+    const prevImageBtn = document.getElementById('prev-image-btn');
+    const nextImageBtn = document.getElementById('next-image-btn');
+    const currentImagePos = document.getElementById('current-image-pos');
+    const totalImages = document.getElementById('total-images');
+    const annotationImage = document.getElementById('annotation-image');
+    const annotationCanvas = document.getElementById('annotation-canvas');
+    const ctx = annotationCanvas.getContext('2d');
+    const annotationsList = document.getElementById('annotations-list');
+    const toolButtons = document.querySelectorAll('.tool-btn');
+    const classItems = document.querySelectorAll('.class-item');
+    const saveBtn = document.getElementById('save-btn');
+    const clearAllBtn = document.getElementById('clear-all-btn');
+    
+    // State
+    let currentImageId = {{ current_image.id }};
+    let currentImageIndex = {{ image_position - 1 }};
+    let currentTool = 'box';
+    let selectedClassId = {{ classes[0].id if classes else 'null' }};
+    let annotations = [];
+    let drawing = false;
+    let startX, startY;
+    let currentAnnotation = null;
+    
+    // Initialize
+    function init() {
+        // Open label panel
+        labelOptionsBtn.addEventListener('click', function() {
+            labelPanel.classList.add('open');
+        });
+        
+        // Close label panel
+        closeLabelPanelBtn.addEventListener('click', function() {
+            labelPanel.classList.remove('open');
+        });
+        
+        // Start annotation
+        startManualBtn.addEventListener('click', function() {
+            labelPanel.classList.remove('open');
+            annotationModal.style.display = 'flex';
+            loadAnnotations();
+        });
+        
+        // Close annotation modal
+        closeAnnotationBtn.addEventListener('click', function() {
+            annotationModal.style.display = 'none';
+        });
+        
+        // Image card selection
+        imageCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const imageId = parseInt(this.dataset.imageId);
+                currentImageId = imageId;
+                document.querySelectorAll('.image-card.selected').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                this.classList.add('selected');
+                
+                if (annotationModal.style.display === 'flex') {
+                    loadImage(imageId);
+                }
+            });
+        });
+        
+        // Navigation buttons
+        prevImageBtn.addEventListener('click', function() {
+            if (currentImageIndex > 0) {
+                currentImageIndex--;
+                updateImageNavigation();
+                // In a real app, you'd load the previous image here
+            }
+        });
+        
+        nextImageBtn.addEventListener('click', function() {
+            if (currentImageIndex < {{ image_count - 1 }}) {
+                currentImageIndex++;
+                updateImageNavigation();
+                // In a real app, you'd load the next image here
+            }
+        });
+        
+        // Tool selection
+        toolButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tool = this.dataset.tool;
+                setActiveTool(tool);
+            });
+        });
+        
+        // Class selection
+        classItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const classId = parseInt(this.dataset.classId);
+                setActiveClass(classId);
+            });
+        });
+        
+        // Save button
+        saveBtn.addEventListener('click', function() {
+            saveAnnotations();
+        });
+        
+        // Clear all button
+        clearAllBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all annotations?')) {
+                annotations = [];
+                renderAnnotations();
+                updateAnnotationsList();
+            }
+        });
+        
+        // Canvas mouse events
+        annotationCanvas.addEventListener('mousedown', startDrawing);
+        annotationCanvas.addEventListener('mousemove', draw);
+        annotationCanvas.addEventListener('mouseup', stopDrawing);
+        annotationCanvas.addEventListener('mouseout', stopDrawing);
+        
+        // Initial setup
+        resizeCanvas();
+        setActiveTool('box');
+        if (selectedClassId) {
+            setActiveClass(selectedClassId);
+        }
+        
+        // Window resize
+        window.addEventListener('resize', resizeCanvas);
+    }
+    
+    function loadImage(imageId) {
+        // In a real app, you'd fetch the image and its annotations from the server
+        // For demo, we'll just update the UI
+        fetch(`/api/images/${imageId}/annotations`)
+            .then(response => response.json())
+            .then(data => {
+                annotations = data.annotations || [];
+                renderAnnotations();
+                updateAnnotationsList();
+            })
+            .catch(error => {
+                console.error('Error loading annotations:', error);
+            });
+    }
+    
+    function loadAnnotations() {
+        // Load annotations for the current image
+        fetch(`/api/images/${currentImageId}/annotations`)
+            .then(response => response.json())
+            .then(data => {
+                annotations = data.annotations || [];
+                renderAnnotations();
+                updateAnnotationsList();
+            })
+            .catch(error => {
+                console.error('Error loading annotations:', error);
+            });
+    }
+    
+    function updateImageNavigation() {
+        currentImagePos.textContent = currentImageIndex + 1;
+        prevImageBtn.disabled = currentImageIndex === 0;
+        nextImageBtn.disabled = currentImageIndex === {{ image_count - 1 }};
+    }
+    
+    function setActiveTool(tool) {
+        currentTool = tool;
+        toolButtons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.tool === tool) {
+                btn.classList.add('active');
+            }
+        });
+    }
+    
+    function setActiveClass(classId) {
+        selectedClassId = classId;
+        classItems.forEach(item => {
+            item.classList.remove('active');
+            if (parseInt(item.dataset.classId) === classId) {
+                item.classList.add('active');
+            }
+        });
+    }
+    
+    function resizeCanvas() {
+        const img = annotationImage;
+        if (img.complete) {
+            annotationCanvas.width = img.width;
+            annotationCanvas.height = img.height;
+            renderAnnotations();
+        } else {
+            img.onload = function() {
+                annotationCanvas.width = img.width;
+                annotationCanvas.height = img.height;
+                renderAnnotations();
+            };
+        }
+    }
+    
+    function startDrawing(e) {
+        const rect = annotationCanvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+        drawing = true;
+        
+        if (currentTool === 'box') {
+            currentAnnotation = {
+                type: 'box',
+                class_id: selectedClassId,
+                x_min: startX,
+                y_min: startY,
+                x_max: startX,
+                y_max: startY
+            };
+        }
+    }
+    
+    function draw(e) {
+        if (!drawing) return;
+        
+        const rect = annotationCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        if (currentTool === 'box' && currentAnnotation) {
+            currentAnnotation.x_max = x;
+            currentAnnotation.y_max = y;
+            renderAnnotations();
+        }
+    }
+    
+    function stopDrawing() {
+        if (!drawing) return;
+        drawing = false;
+        
+        if (currentAnnotation) {
+            // Normalize coordinates (make sure min < max)
+            if (currentAnnotation.x_min > currentAnnotation.x_max) {
+                [currentAnnotation.x_min, currentAnnotation.x_max] = 
+                [currentAnnotation.x_max, currentAnnotation.x_min];
+            }
+            if (currentAnnotation.y_min > currentAnnotation.y_max) {
+                [currentAnnotation.y_min, currentAnnotation.y_max] = 
+                [currentAnnotation.y_max, currentAnnotation.y_min];
+            }
+            
+            // Add to annotations list if it's large enough
+            const width = Math.abs(currentAnnotation.x_max - currentAnnotation.x_min);
+            const height = Math.abs(currentAnnotation.y_max - currentAnnotation.y_min);
+            
+            if (width > 5 && height > 5) {
+                annotations.push(currentAnnotation);
+                updateAnnotationsList();
+            }
+            
+            currentAnnotation = null;
+            renderAnnotations();
+        }
+    }
+    
+    function renderAnnotations() {
+        ctx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
+        
+        // Draw saved annotations
+        annotations.forEach(ann => {
+            if (ann.type === 'box') {
+                drawBox(ann);
+            }
+        });
+        
+        // Draw current annotation
+        if (currentAnnotation && currentAnnotation.type === 'box') {
+            drawBox(currentAnnotation, true);
+        }
+    }
+    
+    function drawBox(annotation, isActive = false) {
+        const classElement = document.querySelector(`.class-item[data-class-id="${annotation.class_id}"]`);
+        const colorElement = classElement ? classElement.querySelector('.class-color') : null;
+        const color = colorElement ? getComputedStyle(colorElement).backgroundColor : '#6c5ce7';
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = isActive ? 2 : 3;
+        ctx.setLineDash(isActive ? [5, 5] : []);
+        
+        const x = Math.min(annotation.x_min, annotation.x_max);
+        const y = Math.min(annotation.y_min, annotation.y_max);
+        const width = Math.abs(annotation.x_max - annotation.x_min);
+        const height = Math.abs(annotation.y_max - annotation.y_min);
+        
+        ctx.strokeRect(x, y, width, height);
+        
+        // Draw class name
+        if (!isActive) {
+            const className = classElement ? classElement.querySelector('.class-name').textContent : 'Unknown';
+            ctx.font = '12px Arial';
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y - 20, ctx.measureText(className).width + 10, 20);
+            ctx.fillStyle = 'white';
+            ctx.fillText(className, x + 5, y - 7);
+        }
+    }
+    
+    function updateAnnotationsList() {
+        annotationsList.innerHTML = '';
+        
+        if (annotations.length === 0) {
+            const message = document.createElement('div');
+            message.className = 'no-annotations';
+            message.textContent = 'No annotations yet. Draw boxes to add them.';
+            annotationsList.appendChild(message);
+            return;
+        }
+        
+        annotations.forEach((ann, index) => {
+            const item = document.createElement('div');
+            item.className = 'annotation-item';
+            
+            const classElement = document.querySelector(`.class-item[data-class-id="${ann.class_id}"]`);
+            const className = classElement ? classElement.querySelector('.class-name').textContent : 'Unknown';
+            const color = classElement ? classElement.querySelector('.class-color').style.backgroundColor : '#6c5ce7';
+            
+            const colorDiv = document.createElement('div');
+            colorDiv.className = 'annotation-color';
+            colorDiv.style.backgroundColor = color;
+            
+            const details = document.createElement('div');
+            details.className = 'annotation-details';
+            details.textContent = `${className} - ${ann.type}`;
+            
+            const actions = document.createElement('div');
+            actions.className = 'annotation-actions';
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'annotation-btn';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.addEventListener('click', () => {
+                annotations.splice(index, 1);
+                renderAnnotations();
+                updateAnnotationsList();
+            });
+            
+            actions.appendChild(deleteBtn);
+            item.appendChild(colorDiv);
+            item.appendChild(details);
+            item.appendChild(actions);
+            
+            annotationsList.appendChild(item);
+        });
+    }
+    
+    function saveAnnotations() {
+        // Save annotations to the server
+        const promises = annotations.map(ann => {
+            return fetch(`/api/images/${currentImageId}/annotations`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(ann)
+            }).then(response => response.json());
+        });
+        
+        Promise.all(promises)
+            .then(results => {
+                alert('Annotations saved successfully!');
+                // Update badge on the corresponding image card
+                const card = document.querySelector(`.image-card[data-image-id="${currentImageId}"]`);
+                const badge = card.querySelector('.annotation-badge') || document.createElement('div');
+                badge.className = 'annotation-badge';
+                badge.textContent = annotations.length;
+                if (!card.querySelector('.annotation-badge')) {
+                    card.querySelector('.image-container').appendChild(badge);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving annotations:', error);
+                alert('Failed to save annotations. Please try again.');
+            });
+    }
+    
+    // Initialize the app
+    init();
+});
+</script>
+{% endblock %} 

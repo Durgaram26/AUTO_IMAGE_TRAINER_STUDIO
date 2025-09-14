@@ -1,0 +1,915 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset Analytics - Griffonder{% endblock %}
+
+{% block content %}
+<div class="analytics-container">
+    <div class="analytics-header">
+        <h1><i class="fas fa-chart-line"></i> Dataset Analytics</h1>
+        <div class="generation-info">
+            <span>Generated on {{ generation_date }}</span>
+            <button class="regenerate-btn"><i class="fas fa-sync-alt"></i> Regenerate</button>
+        </div>
+    </div>
+    
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h2>Number of Images</h2>
+            <div class="metric-value">{{ analytics.image_count }}</div>
+            <div class="metric-detail-list">
+                <div class="metric-detail">
+                    <i class="fas fa-exclamation-circle"></i> {{ analytics.image_count - analytics.annotation_count }} missing annotations
+                </div>
+                <div class="metric-detail">
+                    <i class="fas fa-ban"></i> 0 null examples
+                </div>
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <h2>Number of Annotations</h2>
+            <div class="metric-value">{{ analytics.annotation_count }}</div>
+            <div class="metric-detail-list">
+                <div class="metric-detail">
+                    <i class="fas fa-tags"></i> {{ analytics.avg_annotations|round(1) }} per image (average)
+                </div>
+                <div class="metric-detail">
+                    <i class="fas fa-code"></i> Across {{ analytics.classes|length }} classes
+                </div>
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <h2>Average Image Size</h2>
+            <div class="metric-value">{{ analytics.avg_mp|round(2) }} mp</div>
+            <div class="metric-detail-list">
+                <div class="metric-detail">
+                    <i class="fas fa-search-minus"></i> from {{ analytics.min_mp|round(2) }} mp
+                </div>
+                <div class="metric-detail">
+                    <i class="fas fa-search-plus"></i> to {{ analytics.max_mp|round(2) }} mp
+                </div>
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <h2>Median Image Ratio</h2>
+            <div class="metric-value">{{ analytics.median_width }}x{{ analytics.median_height }}</div>
+            <div class="metric-detail-list">
+                <div class="metric-detail">
+                    <i class="fas fa-arrows-alt-h"></i> {% if analytics.median_width > analytics.median_height %}wide{% else %}tall{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Data Split Distribution Section -->
+    <div class="data-split-section">
+        <div class="section-header">
+            <h2>Dataset Split Distribution</h2>
+            <p>Overview of how your dataset is divided between training, validation and test sets.</p>
+        </div>
+        
+        <div class="split-visualization">
+            <div class="split-chart">
+                <canvas id="splitDistributionChart"></canvas>
+            </div>
+            <div class="split-stats">
+                <div class="split-stat-item">
+                    <div class="stat-label">Training Set</div>
+                    <div class="stat-value train-value">
+                        <span id="train-count">0</span> images
+                    </div>
+                    <div class="stat-percentage">
+                        <span id="train-percentage">0%</span>
+                    </div>
+                </div>
+                <div class="split-stat-item">
+                    <div class="stat-label">Validation Set</div>
+                    <div class="stat-value val-value">
+                        <span id="val-count">0</span> images
+                    </div>
+                    <div class="stat-percentage">
+                        <span id="val-percentage">0%</span>
+                    </div>
+                </div>
+                <div class="split-stat-item">
+                    <div class="stat-label">Test Set</div>
+                    <div class="stat-value test-value">
+                        <span id="test-count">0</span> images
+                    </div>
+                    <div class="stat-percentage">
+                        <span id="test-percentage">0%</span>
+                    </div>
+                </div>
+                <div class="split-stat-item">
+                    <div class="stat-label">Unassigned</div>
+                    <div class="stat-value unassigned-value">
+                        <span id="unassigned-count">0</span> images
+                    </div>
+                    <div class="stat-percentage">
+                        <span id="unassigned-percentage">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="split-actions">
+            <button class="btn btn-primary" id="balance-splits-btn">
+                <i class="fas fa-balance-scale"></i> Rebalance Splits
+            </button>
+            <button class="btn btn-outline" id="auto-split-btn">
+                <i class="fas fa-magic"></i> Auto-Split Dataset
+            </button>
+        </div>
+    </div>
+    
+    <div class="classes-section">
+        <div class="classes-header">
+            <div class="section-title">
+                <h2>Classes <i class="fas fa-question-circle"></i></h2>
+                <p>Overview of the number of annotations for each class in your dataset.</p>
+            </div>
+            <div class="classes-actions">
+                <div class="dropdown">
+                    <button class="btn btn-outline">Tags <i class="fas fa-chevron-down"></i></button>
+                </div>
+                <button class="btn btn-outline">
+                    <i class="fas fa-balance-scale"></i> Rebalance Splits
+                </button>
+                <button class="btn btn-outline">
+                    <i class="fas fa-download"></i> Download CSV
+                </button>
+            </div>
+        </div>
+        
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search by class name" id="class-search">
+        </div>
+        
+        <div class="class-splits-tabs">
+            <div class="split-tab active" data-split="all">All Splits</div>
+            <div class="split-tab" data-split="train">
+                <i class="far fa-circle"></i> Train
+            </div>
+            <div class="split-tab" data-split="val">
+                <i class="far fa-circle"></i> Valid
+            </div>
+            <div class="split-tab" data-split="test">
+                <i class="far fa-circle"></i> Test
+            </div>
+            <div class="sort-btn">
+                Sort <i class="fas fa-sort"></i>
+            </div>
+        </div>
+        
+        <div class="class-distribution">
+            {% for class in analytics.classes %}
+            <div class="class-item">
+                <div class="class-name" style="color: {{ class.color }};">{{ class.name }}</div>
+                <div class="class-count">{{ class.count }}</div>
+                <div class="distribution-bar">
+                    <div class="train-segment" style="width: 70%;"></div>
+                    <div class="valid-segment" style="width: 20%;"></div>
+                    <div class="test-segment" style="width: 10%;"></div>
+                </div>
+                <div class="class-details">
+                    <div class="class-detail-item">
+                        <span class="detail-label">Train:</span>
+                        <span class="detail-value">{{ (class.count * 0.7)|round|int }}</span>
+                    </div>
+                    <div class="class-detail-item">
+                        <span class="detail-label">Valid:</span>
+                        <span class="detail-value">{{ (class.count * 0.2)|round|int }}</span>
+                    </div>
+                    <div class="class-detail-item">
+                        <span class="detail-label">Test:</span>
+                        <span class="detail-value">{{ (class.count * 0.1)|round|int }}</span>
+                    </div>
+                    <div class="class-actions">
+                        <button class="btn-icon edit-class-btn" title="Edit class"><i class="fas fa-pen"></i></button>
+                        <button class="btn-icon view-class-btn" title="View samples"><i class="fas fa-eye"></i></button>
+            </div>
+                </div>
+            </div>
+            {% endfor %}
+            </div>
+            
+        <div class="class-visualization">
+            <div class="visualization-header">
+                <h3>Class Distribution</h3>
+                <div class="visualization-controls">
+                    <button class="btn btn-sm btn-outline active" data-chart="pie">Pie Chart</button>
+                    <button class="btn btn-sm btn-outline" data-chart="bar">Bar Chart</button>
+                </div>
+            </div>
+            <div class="class-charts">
+                <canvas id="classDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="additional-metrics">
+        <div class="section-header">
+            <h2>Image Size Distribution</h2>
+        </div>
+        <div class="placeholder-chart">
+            <div class="placeholder-text">
+                <i class="fas fa-chart-bar"></i>
+                <p>Image size distribution chart would go here</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="additional-metrics">
+        <div class="section-header">
+            <h2>Annotation Size Distribution</h2>
+        </div>
+        <div class="placeholder-chart">
+            <div class="placeholder-text">
+                <i class="fas fa-chart-bar"></i>
+                <p>Annotation size distribution chart would go here</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    .analytics-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px 0;
+    }
+    
+    .analytics-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+    
+    .analytics-header h1 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 24px;
+    }
+    
+    .generation-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        color: #777;
+    }
+    
+    .regenerate-btn {
+        background: none;
+        border: none;
+        color: #6c5ce7;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+    
+    .metric-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .metric-card h2 {
+        font-size: 16px;
+        color: #777;
+        margin-bottom: 15px;
+    }
+    
+    .metric-value {
+        font-size: 28px;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    
+    .metric-detail-list {
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+    }
+    
+    .metric-detail {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #777;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    
+    .classes-section {
+        background: white;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 30px;
+    }
+    
+    .classes-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+    
+    .section-title h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 18px;
+        margin-bottom: 8px;
+    }
+    
+    .section-title p {
+        color: #777;
+        font-size: 14px;
+    }
+    
+    .classes-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .dropdown {
+        position: relative;
+    }
+    
+    .search-box {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .search-box i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+    }
+    
+    .search-box input {
+        width: 100%;
+        padding: 10px 15px 10px 40px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    
+    .class-splits-tabs {
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    
+    .split-tab {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .split-tab.active {
+        border-bottom-color: #6c5ce7;
+        color: #6c5ce7;
+        font-weight: 500;
+    }
+    
+    .sort-btn {
+        margin-left: auto;
+        padding: 8px 15px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+    }
+    
+    .class-distribution {
+        margin-top: 20px;
+    }
+    
+    .class-item {
+        margin-bottom: 25px;
+    }
+    
+    .class-name {
+        font-weight: 500;
+        margin-bottom: 5px;
+        font-size: 16px;
+    }
+    
+    .class-count {
+        color: #777;
+        margin-bottom: 8px;
+    }
+    
+    .distribution-bar {
+        height: 20px;
+        background: #f0f0f0;
+        border-radius: 10px;
+        overflow: hidden;
+        display: flex;
+    }
+    
+    .train-segment {
+        height: 100%;
+        background: linear-gradient(90deg, #6c5ce7 0%, #8c7aff 100%);
+    }
+    
+    .valid-segment {
+        height: 100%;
+        background: linear-gradient(90deg, #3498db 0%, #5dade2 100%);
+    }
+    
+    .test-segment {
+        height: 100%;
+        background: linear-gradient(90deg, #f39c12 0%, #f5b041 100%);
+    }
+    
+    .additional-metrics {
+        background: white;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 30px;
+    }
+    
+    .section-header {
+        margin-bottom: 20px;
+    }
+    
+    .section-header h2 {
+        font-size: 18px;
+    }
+    
+    .placeholder-chart {
+        height: 300px;
+        background: #f9f9f9;
+        border-radius: 8px;
+        border: 1px dashed #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .placeholder-text {
+        text-align: center;
+        color: #999;
+    }
+    
+    .placeholder-text i {
+        font-size: 40px;
+        margin-bottom: 10px;
+    }
+    
+    /* Data Split Section Styles */
+    .data-split-section {
+        background: white;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 30px;
+    }
+    
+    .section-header {
+        margin-bottom: 20px;
+    }
+    
+    .section-header h2 {
+        font-size: 18px;
+        margin-bottom: 8px;
+    }
+    
+    .section-header p {
+        color: #777;
+        font-size: 14px;
+    }
+    
+    .split-visualization {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 20px;
+    }
+    
+    .split-chart {
+        flex: 1;
+        height: 300px;
+    }
+    
+    .split-stats {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .split-stat-item {
+        display: flex;
+        flex-direction: column;
+        padding: 15px;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        border-left: 4px solid #ddd;
+    }
+    
+    .split-stat-item:nth-child(1) {
+        border-left-color: #00b894;
+    }
+    
+    .split-stat-item:nth-child(2) {
+        border-left-color: #0984e3;
+    }
+    
+    .split-stat-item:nth-child(3) {
+        border-left-color: #e84393;
+    }
+    
+    .split-stat-item:nth-child(4) {
+        border-left-color: #777;
+    }
+    
+    .stat-label {
+        font-size: 14px;
+        color: #777;
+        margin-bottom: 5px;
+    }
+    
+    .stat-value {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .train-value {
+        color: #00b894;
+    }
+    
+    .val-value {
+        color: #0984e3;
+    }
+    
+    .test-value {
+        color: #e84393;
+    }
+    
+    .unassigned-value {
+        color: #777;
+    }
+    
+    .stat-percentage {
+        font-size: 14px;
+        color: #666;
+    }
+    
+    .split-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    
+    /* Class visualization styles */
+    .class-visualization {
+        margin-top: 25px;
+        border-top: 1px solid #eee;
+        padding-top: 25px;
+    }
+    
+    .visualization-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .visualization-header h3 {
+        font-size: 16px;
+        margin: 0;
+    }
+    
+    .visualization-controls {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn-sm {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+    
+    .class-charts {
+        height: 300px;
+    }
+    
+    /* Enhanced class item styles */
+    .class-item {
+        position: relative;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.2s;
+    }
+    
+    .class-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .class-name {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .class-count {
+        font-size: 14px;
+        color: #777;
+        margin-bottom: 10px;
+    }
+    
+    .class-details {
+        display: flex;
+        margin-top: 10px;
+        align-items: center;
+    }
+    
+    .class-detail-item {
+        margin-right: 20px;
+        font-size: 13px;
+    }
+    
+    .detail-label {
+        color: #777;
+        margin-right: 5px;
+    }
+    
+    .detail-value {
+        font-weight: 500;
+    }
+    
+    .class-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 5px;
+    }
+    
+    .btn-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        background: white;
+        color: #666;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    
+    .btn-icon:hover {
+        background-color: #f5f5f5;
+        color: #333;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set current date for generation info
+        const today = new Date();
+        const formattedDate = today.toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+        }) + ' at ' + today.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+        
+        document.querySelector('.generation-info span').textContent = 'Generated on ' + formattedDate;
+        
+        // Add click handler for tabs
+        const splitTabs = document.querySelectorAll('.split-tab');
+        splitTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                splitTabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    });
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sample data for demonstration - in production this would come from the backend
+    const splitData = {
+        train: 56,
+        val: 16,
+        test: 8,
+        unassigned: 20
+    };
+    
+    const totalImages = splitData.train + splitData.val + splitData.test + splitData.unassigned;
+    
+    // Update split metrics
+    document.getElementById('train-count').textContent = splitData.train;
+    document.getElementById('val-count').textContent = splitData.val;
+    document.getElementById('test-count').textContent = splitData.test;
+    document.getElementById('unassigned-count').textContent = splitData.unassigned;
+    
+    document.getElementById('train-percentage').textContent = Math.round(splitData.train / totalImages * 100) + '%';
+    document.getElementById('val-percentage').textContent = Math.round(splitData.val / totalImages * 100) + '%';
+    document.getElementById('test-percentage').textContent = Math.round(splitData.test / totalImages * 100) + '%';
+    document.getElementById('unassigned-percentage').textContent = Math.round(splitData.unassigned / totalImages * 100) + '%';
+    
+    // Initialize split distribution chart
+    const splitCtx = document.getElementById('splitDistributionChart').getContext('2d');
+    const splitDistributionChart = new Chart(splitCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Training', 'Validation', 'Test', 'Unassigned'],
+            datasets: [{
+                data: [splitData.train, splitData.val, splitData.test, splitData.unassigned],
+                backgroundColor: [
+                    '#00b894',
+                    '#0984e3',
+                    '#e84393',
+                    '#b2bec3'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                title: {
+                    display: true,
+                    text: 'Dataset Split Distribution'
+                }
+            }
+        }
+    });
+    
+    // Get class data
+    const classes = [];
+    const classCounts = [];
+    const classColors = [];
+    document.querySelectorAll('.class-item').forEach(item => {
+        const className = item.querySelector('.class-name').textContent;
+        const count = parseInt(item.querySelector('.class-count').textContent);
+        const color = item.querySelector('.class-name').style.color;
+        
+        classes.push(className);
+        classCounts.push(count);
+        classColors.push(color);
+    });
+    
+    // Initialize class distribution chart
+    const classCtx = document.getElementById('classDistributionChart').getContext('2d');
+    const classDistributionChart = new Chart(classCtx, {
+        type: 'pie',
+        data: {
+            labels: classes,
+            datasets: [{
+                data: classCounts,
+                backgroundColor: classColors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                title: {
+                    display: true,
+                    text: 'Class Distribution'
+                }
+            }
+        }
+    });
+    
+    // Toggle between pie and bar chart views
+    document.querySelectorAll('.visualization-controls button').forEach(button => {
+        button.addEventListener('click', function() {
+            const chartType = this.dataset.chart;
+            
+            // Update button active state
+            document.querySelectorAll('.visualization-controls button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // Destroy existing chart
+            classDistributionChart.destroy();
+            
+            // Create new chart with selected type
+            const newClassChart = new Chart(classCtx, {
+                type: chartType,
+                data: {
+                    labels: classes,
+                    datasets: [{
+                        data: classCounts,
+                        backgroundColor: classColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: chartType === 'pie' ? 'right' : 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Class Distribution'
+                        }
+                    }
+                }
+            });
+        });
+    });
+    
+    // Class search functionality
+    const classSearch = document.getElementById('class-search');
+    if (classSearch) {
+        classSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            document.querySelectorAll('.class-item').forEach(item => {
+                const className = item.querySelector('.class-name').textContent.toLowerCase();
+                if (className.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // Split tab functionality
+    document.querySelectorAll('.split-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const splitType = this.dataset.split;
+            
+            // Update active tab
+            document.querySelectorAll('.split-tab').forEach(t => {
+                t.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // Here you would update the class distribution to show only the selected split
+            // This would require actual data from the backend
+        });
+    });
+    
+    // Auto-split and rebalance functionality
+    document.getElementById('auto-split-btn')?.addEventListener('click', function() {
+        if (confirm('This will automatically assign all images to splits (70% train, 20% validation, 10% test). Continue?')) {
+            // Here you would call the backend to perform the auto-split
+            alert('Auto-split applied successfully!');
+            // After successful splitting, you would refresh the data and charts
+        }
+    });
+    
+    document.getElementById('balance-splits-btn')?.addEventListener('click', function() {
+        if (confirm('This will rebalance the class distribution across splits. Continue?')) {
+            // Here you would call the backend to perform the rebalancing
+            alert('Splits rebalanced successfully!');
+            // After successful rebalancing, you would refresh the data and charts
+        }
+        });
+    });
+</script>
+{% endblock %} 

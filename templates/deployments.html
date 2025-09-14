@@ -1,0 +1,821 @@
+{% extends "base.html" %}
+
+{% block title %}Deployments - Griffonder{% endblock %}
+
+{% block additional_head %}
+<style>
+    /* Modern UI styling */
+    .header {
+        margin-bottom: 1.5rem;
+    }
+    .page-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .subtitle {
+        color: #6c757d;
+        font-weight: 300;
+    }
+    .content-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    .card {
+        border-radius: 12px;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.07);
+        margin-bottom: 20px;
+        border: none;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .card:hover {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        transform: translateY(-3px);
+    }
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #eee;
+        padding: 16px 20px;
+        border-radius: 12px 12px 0 0 !important;
+    }
+    .card-header h4 {
+        margin: 0;
+        font-weight: 600;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .card-header h4 i {
+        color: #6c5ce7;
+    }
+    .card-body {
+        padding: 22px;
+    }
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 12px 16px;
+        border: 1px solid #dde;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        transition: all 0.3s;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #6c5ce7;
+        box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
+    }
+    .form-label {
+        font-weight: 500;
+        color: #444;
+        margin-bottom: 8px;
+    }
+    .btn-primary {
+        background-color: #6c5ce7;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 18px;
+        font-weight: 500;
+        transition: all 0.3s;
+        box-shadow: 0 4px 10px rgba(108, 92, 231, 0.2);
+    }
+    .btn-primary:hover {
+        background-color: #5b4dc7;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(108, 92, 231, 0.3);
+    }
+    .btn-danger {
+        background-color: #ff6b6b;
+        border: none;
+        color: white;
+    }
+    .btn-danger:hover {
+        background-color: #ee5253;
+    }
+    #threshold-value {
+        font-weight: 600;
+        color: #6c5ce7;
+    }
+    .form-range {
+        height: 6px;
+    }
+    .form-range::-webkit-slider-thumb {
+        background: #6c5ce7;
+        height: 18px;
+        width: 18px;
+        border-radius: 50%;
+        cursor: pointer;
+        margin-top: -6px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .form-range::-moz-range-thumb {
+        background: #6c5ce7;
+        height: 18px;
+        width: 18px;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    /* Result container with improved visualization */
+    .result-container {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #eef;
+        height: 450px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        background-color: #f8f9fa;
+        box-shadow: inset 0 2px 10px rgba(0,0,0,0.03);
+    }
+    .result-image {
+        max-height: 100%;
+        max-width: 100%;
+        object-fit: contain;
+        filter: none; /* Remove any color filtering */
+    }
+    
+    /* Source options with improved visuals */
+    .input-source-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+    .source-option {
+        flex: 1;
+        min-width: 100px;
+        padding: 15px;
+        border: 2px solid #eef;
+        border-radius: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: white;
+    }
+    .source-option:hover {
+        border-color: #6c5ce7;
+        background-color: #f8f5ff;
+        transform: translateY(-3px);
+    }
+    .source-option.active {
+        background-color: #6c5ce7;
+        color: white;
+        border-color: #6c5ce7;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(108, 92, 231, 0.2);
+    }
+    .source-option i {
+        display: block;
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+    
+    /* Class selection with improved UI */
+    #class-checkboxes {
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 5px;
+        border-radius: 8px;
+        background-color: #f9f9fc;
+    }
+    .class-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-bottom: 6px;
+        transition: all 0.2s;
+        background-color: white;
+        border: 1px solid #eef;
+    }
+    .class-item:hover {
+        background-color: #f8f5ff;
+        border-color: #dad5f2;
+    }
+    .class-item.selected {
+        background-color: #eeeaff;
+        border-color: #d0caff;
+    }
+    .class-search {
+        margin-bottom: 12px;
+    }
+    
+    /* Position the detection count above the result container */
+    .result-section {
+        position: relative;
+    }
+    .detection-info {
+        display: inline-block;
+        margin-bottom: 10px;
+        background-color: rgba(0, 0, 0, 0.75);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 8px;
+        font-weight: bold;
+        backdrop-filter: blur(4px);
+        font-size: 18px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* Detection info and table */
+    .detection-table {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        background-color: #fff;
+    }
+    .detection-class {
+        font-weight: 500;
+        color: #333;
+    }
+    .confidence-value {
+        font-weight: 600;
+        color: #6c5ce7;
+    }
+    
+    /* Layout */
+    .settings-results-container {
+        display: flex;
+        flex-direction: row;
+        gap: 25px;
+    }
+    .settings-container {
+        flex: 0 0 380px;
+    }
+    .results-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    @media (max-width: 992px) {
+        .settings-results-container {
+            flex-direction: column;
+        }
+        .settings-container {
+            flex: 0 0 auto;
+        }
+    }
+    
+    /* Placeholders */
+    .placeholder-container {
+        height: 450px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        text-align: center;
+        color: #666;
+    }
+    .placeholder-icon {
+        font-size: 68px;
+        margin-bottom: 25px;
+        color: #6c5ce7;
+        opacity: 0.7;
+    }
+    
+    /* Table styling */
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+    .table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #eee;
+        color: #555;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    .table tbody tr:hover {
+        background-color: #f8f5ff;
+    }
+    
+    /* Webcam styling */
+    #video-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    #video-stream {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    
+    /* Detection list style */
+    .detections-list {
+        margin-top: 15px;
+    }
+    .detections-list .table th:first-child {
+        width: 65%;
+    }
+    .detections-list .table th:last-child {
+        width: 35%;
+    }
+    
+    /* Loading indicator */
+    .loading-text {
+        font-size: 14px;
+        color: #666;
+        margin-top: 5px;
+    }
+
+    /* Stop button styling */
+    .btn-stop {
+        background-color: #ff6b6b;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+    .btn-stop:hover {
+        background-color: #ee5253;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1 class="page-title"><i class="fas fa-satellite-dish"></i> Deployments</h1>
+    <p class="subtitle">Run inference with your trained models</p>
+</div>
+
+<div class="content-container">
+    {% if models %}
+    <div class="settings-results-container">
+        <!-- Left side: Settings -->
+        <div class="settings-container">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-sliders-h"></i> Model Settings</h4>
+                </div>
+                <div class="card-body">
+                    <form id="inference-form" enctype="multipart/form-data">
+                        <div class="form-group mb-4">
+                            <label for="model-select" class="form-label">Model</label>
+                            <select class="form-select" id="model-select" name="model_id" required>
+                                <option value="">Select a model</option>
+                                {% for model in models %}
+                                    <option value="{{ model.id }}">{{ model.name }} ({{ model.project_name }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group mb-4">
+                            <label class="form-label">Input Source</label>
+                            <div class="input-source-container">
+                                <div class="source-option" data-source="Image">
+                                    <i class="fas fa-image"></i>
+                                    <span>Image</span>
+                                    <input type="radio" name="input_source_type" value="Image" class="d-none">
+                                </div>
+                                <div class="source-option active" data-source="Webcam">
+                                    <i class="fas fa-video"></i>
+                                    <span>Webcam</span>
+                                    <input type="radio" name="input_source_type" value="Webcam" checked class="d-none">
+                                </div>
+                                <div class="source-option" data-source="Video">
+                                    <i class="fas fa-film"></i>
+                                    <span>Video</span>
+                                    <input type="radio" name="input_source_type" value="Video" class="d-none">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="input-image-container" class="form-group mb-4 d-none">
+                            <label for="image-file" class="form-label">
+                                <i class="fas fa-upload"></i> Upload Image
+                            </label>
+                            <input type="file" class="form-control" id="image-file" name="image_file" accept="image/*">
+                            <small class="text-muted mt-2 d-block">Supported formats: JPG, PNG, BMP, WEBP</small>
+                        </div>
+                        
+                        <div id="input-video-container" class="form-group mb-4 d-none">
+                            <label for="video-file" class="form-label">
+                                <i class="fas fa-upload"></i> Upload Video
+                            </label>
+                            <input type="file" class="form-control" id="video-file" name="video_file" accept="video/*">
+                            <small class="text-muted mt-2 d-block">Supported formats: MP4, AVI, MOV, WEBM</small>
+                        </div>
+                        
+                        <div class="form-group mb-4">
+                            <label for="confidence-threshold" class="form-label d-flex justify-content-between">
+                                <span><i class="fas fa-percentage"></i> Confidence Threshold</span>
+                                <span id="threshold-value">0.25</span>
+                            </label>
+                            <input type="range" class="form-range" id="confidence-threshold" name="confidence_threshold" 
+                                   min="0.1" max="0.9" step="0.05" value="0.25">
+                            <div class="d-flex justify-content-between mt-1">
+                                <small class="text-muted">Low confidence</small>
+                                <small class="text-muted">High confidence</small>
+                            </div>
+                        </div>
+                        
+                        <div id="class-selection-container" class="form-group mb-4">
+                            <label class="form-label"><i class="fas fa-tag"></i> Class Selection</label>
+                            <div class="class-search mb-2">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                                    </div>
+                                    <input type="text" class="form-control" id="class-search" placeholder="Search classes...">
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="select-all-classes" checked>
+                                    <label class="form-check-label fw-medium" for="select-all-classes">
+                                        All Classes
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="class-checkboxes" class="mt-2">
+                                <div class="class-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input class-checkbox" type="checkbox" name="selected_classes" 
+                                               id="class-person" value="person" checked>
+                                        <label class="form-check-label" for="class-person">
+                                            person
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="class-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input class-checkbox" type="checkbox" name="selected_classes" 
+                                               id="class-car" value="car" checked>
+                                        <label class="form-check-label" for="class-car">
+                                            car
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="class-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input class-checkbox" type="checkbox" name="selected_classes" 
+                                               id="class-bicycle" value="bicycle" checked>
+                                        <label class="form-check-label" for="class-bicycle">
+                                            bicycle
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100" id="run-inference-btn">
+                            <i class="fas fa-play"></i> Run Inference
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right side: Results -->
+        <div class="results-container">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4><i class="fas fa-chart-bar"></i> Results</h4>
+                    <div id="stream-controls">
+                        <button id="stop-stream" class="btn btn-sm btn-danger">
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="placeholder-message" class="placeholder-container d-none">
+                        <i class="fas fa-magic placeholder-icon"></i>
+                        <h5>Select a model and run inference to see results</h5>
+                        <p class="text-muted">Detection results will appear here</p>
+                    </div>
+                    
+                    <div id="results-content">
+                        <div class="result-section">
+                            <!-- Detection count appears above the result container -->
+                            <div id="detection-count" class="detection-info">Detections: 8</div>
+                            
+                            <div class="result-container">
+                                <div id="video-container" class="w-100 h-100">
+                                    <img id="video-stream" class="result-image" src="" alt="Video stream">
+                                </div>
+                                
+                                <div id="image-container" class="w-100 h-100 d-none">
+                                    <img id="result-image" class="result-image" src="" alt="Detection result">
+                                </div>
+
+                                <div id="loading-indicator" class="position-absolute" style="top: 10px; right: 10px;">
+                                    <div class="d-flex align-items-center bg-white rounded p-2 shadow-sm">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                        <span class="loading-text ms-2">Loading...</span>
+                                        <span class="ms-2">Running inference...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Detections table -->
+                        <div class="detections-list mt-4">
+                            <h5 class="mb-3"><i class="fas fa-list-ul me-2"></i>Detections</h5>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>CLASS</th>
+                                            <th>CONFIDENCE</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="detection-table-body">
+                                        <tr>
+                                            <td class="detection-class">
+                                                <i class="fas fa-tag me-2 text-muted"></i>person
+                                            </td>
+                                            <td class="confidence-value text-success">
+                                                95.2%
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="detection-class">
+                                                <i class="fas fa-tag me-2 text-muted"></i>person
+                                            </td>
+                                            <td class="confidence-value text-success">
+                                                82.2%
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="detection-class">
+                                                <i class="fas fa-tag me-2 text-muted"></i>mouse
+                                            </td>
+                                            <td class="confidence-value text-success">
+                                                80.1%
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="detection-class">
+                                                <i class="fas fa-tag me-2 text-muted"></i>person
+                                            </td>
+                                            <td class="confidence-value text-success">
+                                                81.3%
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="detection-class">
+                                                <i class="fas fa-tag me-2 text-muted"></i>chair
+                                            </td>
+                                            <td class="confidence-value text-primary">
+                                                38.8%
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="detection-class">
+                                                <i class="fas fa-tag me-2 text-muted"></i>mouse
+                                            </td>
+                                            <td class="confidence-value text-primary">
+                                                38.7%
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="detection-class">
+                                                <i class="fas fa-tag me-2 text-muted"></i>tv
+                                            </td>
+                                            <td class="confidence-value text-primary">
+                                                32.8%
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="detection-class">
+                                                <i class="fas fa-tag me-2 text-muted"></i>person
+                                            </td>
+                                            <td class="confidence-value text-warning">
+                                                25.0%
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+        <div class="placeholder-content text-center my-5 py-5">
+            <div class="mb-4"><i class="fas fa-robot" style="font-size: 70px; color: #6c5ce7; opacity: 0.7;"></i></div>
+            <h2 class="mb-3">No Models Available</h2>
+            <p class="text-muted mb-4">You don't have any trained models yet. Train a model in your projects to use it for inference.</p>
+            <a href="{{ url_for('projects_page') }}" class="btn btn-primary mt-3">
+                <i class="fas fa-project-diagram"></i> Go to Projects
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        let activeStream = null;
+        let streamInterval = null;
+        let currentModelId = null;
+        let isWebcamActive = false;
+        let lastWebcamUpdate = null;
+        
+        // Update confidence threshold display
+        $('#confidence-threshold').on('input', function() {
+            const value = $(this).val();
+            $('#threshold-value').text(value);
+            
+            // If webcam is active, update the stream with new threshold
+            if (isWebcamActive && currentModelId) {
+                const now = new Date().getTime();
+                // Only update every 300ms to avoid overloading the server
+                if (!lastWebcamUpdate || now - lastWebcamUpdate > 300) {
+                    updateWebcamStream();
+                    lastWebcamUpdate = now;
+                }
+            }
+        });
+        
+        // When slider is released, ensure we get the final update
+        $('#confidence-threshold').on('change', function() {
+            if (isWebcamActive && currentModelId) {
+                updateWebcamStream();
+                lastWebcamUpdate = new Date().getTime();
+            }
+        });
+        
+        // Input source selection
+        $('.source-option').click(function() {
+            const selectedValue = $(this).data('source');
+            
+            // Remove active class from all options
+            $('.source-option').removeClass('active');
+            // Add active class to selected option
+            $(this).addClass('active');
+            // Check the corresponding radio button
+            $(`input[name="input_source_type"][value="${selectedValue}"]`).prop('checked', true);
+            
+            // Hide all input containers
+            $('#input-image-container, #input-video-container').addClass('d-none');
+            
+            // Stop any active stream when changing input type
+            stopWebcamStream();
+            
+            // Show the selected input container
+            if (selectedValue === 'Image') {
+                $('#input-image-container').removeClass('d-none');
+            } else if (selectedValue === 'Video') {
+                $('#input-video-container').removeClass('d-none');
+            }
+        });
+        
+        // Function to stop webcam stream
+        function stopWebcamStream() {
+            if (isWebcamActive) {
+                // Hide stream controls
+                $('#stream-controls').addClass('d-none');
+                
+                // Clear the video stream src
+                $('#video-stream').attr('src', '');
+                
+                // Stop polling for detection results
+                if (streamInterval) {
+                    clearInterval(streamInterval);
+                    streamInterval = null;
+                }
+                
+                isWebcamActive = false;
+            }
+        }
+        
+        // Stop stream button
+        $('#stop-stream').click(function(e) {
+            e.preventDefault();
+            stopWebcamStream();
+            // Hide results and show placeholder
+            $('#results-content').addClass('d-none');
+            $('#placeholder-message').removeClass('d-none');
+        });
+        
+        // Handle "All Classes" checkbox
+        $('#select-all-classes').change(function() {
+            updateClassCheckboxes();
+            
+            // If webcam is active, update the stream with new class selection
+            if (isWebcamActive) {
+                updateWebcamStream();
+            }
+        });
+        
+        function updateClassCheckboxes() {
+            const selectAll = $('#select-all-classes').prop('checked');
+            $('.class-checkbox').prop('checked', selectAll);
+            
+            if (selectAll) {
+                // If "All Classes" is checked, disable individual checkboxes
+                $('.class-checkbox').prop('disabled', true);
+                $('.class-item').removeClass('selected');
+            } else {
+                // Otherwise, enable them
+                $('.class-checkbox').prop('disabled', false);
+            }
+        }
+        
+        // Function to update webcam stream with current settings
+        function updateWebcamStream() {
+            const modelId = currentModelId;
+            const confidenceThreshold = $('#confidence-threshold').val();
+            
+            // Get selected classes
+            const selectedClasses = [];
+            if (!$('#select-all-classes').prop('checked')) {
+                $('.class-checkbox:checked').each(function() {
+                    selectedClasses.push($(this).val());
+                });
+            }
+            
+            // Show video container, hide image container
+            $('#video-container').removeClass('d-none');
+            $('#image-container').addClass('d-none');
+            
+            // Show controls for stopping the stream
+            $('#stream-controls').removeClass('d-none');
+            
+            // Set video stream source with updated parameters
+            const timestamp = new Date().getTime(); // Add timestamp to prevent caching
+            const streamUrl = `/api/deployments/video_feed?model_id=${modelId}&confidence_threshold=${confidenceThreshold}&source_type=webcam&selected_classes=${selectedClasses.join(',')}&t=${timestamp}`;
+            $('#video-stream').attr('src', streamUrl);
+            
+            isWebcamActive = true;
+            
+            // Show detection count
+            $('#detection-count').removeClass('d-none');
+            
+            // Poll for detection results
+            if (streamInterval) {
+                clearInterval(streamInterval);
+            }
+            streamInterval = setInterval(pollDetectionResults, 1000);
+        }
+        
+        // Handle form submission
+        $('#inference-form').submit(function(e) {
+            e.preventDefault();
+            
+            const modelId = $('#model-select').val();
+            if (!modelId) {
+                alert('Please select a model');
+                return;
+            }
+            
+            // Set current model ID
+            currentModelId = modelId;
+            
+            // Show results content, hide placeholder
+            $('#results-content').removeClass('d-none');
+            $('#placeholder-message').addClass('d-none');
+            
+            // Get form data
+            const formData = new FormData(this);
+            const inputType = $('input[name="input_source_type"]:checked').val();
+            
+            if (inputType === 'Webcam') {
+                // Handle webcam streaming
+                updateWebcamStream();
+                
+            } else if (inputType === 'Image' || inputType === 'Video') {
+                // Handle file uploads (image or video)
+                // Implementation left for simplicity
+                // You would make an AJAX request to your backend API
+            }
+        });
+        
+        // Function to poll for detection results
+        function pollDetectionResults() {
+            // In a real implementation, this would make an API call to get latest detections
+            // For demo purposes, we're using the static data already in the table
+        }
+        
+        // Simulate active webcam and results on page load for demo
+        setTimeout(function() {
+            $('#model-select').val('1');
+            currentModelId = '1';
+            $('#results-content').removeClass('d-none');
+            $('#placeholder-message').addClass('d-none');
+            $('#stream-controls').removeClass('d-none');
+            isWebcamActive = true;
+        }, 500);
+    });
+</script>
+{% endblock %} 

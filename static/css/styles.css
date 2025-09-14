@@ -1,0 +1,476 @@
+/* Add these styles to your existing CSS file */
+
+/* AI Labeling Section */
+.ai-labeling-section {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f5f7ff;
+    border-radius: 8px;
+    border: 1px solid #e1e5f2;
+}
+
+.ai-labeling-section h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: #383f51;
+}
+
+.ai-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ai-option {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.ai-option label {
+    font-size: 13px;
+    color: #5c6484;
+    font-weight: 500;
+}
+
+.ai-option select, 
+.ai-option input[type="range"] {
+    width: 100%;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+}
+
+.ai-option textarea {
+    width: 100%;
+    height: 60px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    resize: vertical;
+    font-size: 13px;
+}
+
+.ai-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+#ai-confidence-value {
+    margin-left: 5px;
+    font-weight: 500;
+    color: #4a69bd;
+}
+
+/* Batch AI Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    color: #666;
+}
+
+.ai-batch-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.option-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #555;
+}
+
+.slider-with-value {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.slider-with-value input[type="range"] {
+    flex: 1;
+}
+
+#batch-ai-confidence-value {
+    font-weight: 500;
+    color: #4a69bd;
+    min-width: 30px;
+    text-align: center;
+}
+
+.image-selection-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.checkbox-container, .radio-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #666;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* Progress bar */
+#batch-progress-container {
+    margin: 20px 0;
+}
+
+.progress-label {
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: #666;
+}
+
+/* Notifications */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 15px 20px;
+    z-index: 9999;
+    max-width: 400px;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.notification.success {
+    border-left: 5px solid #4caf50;
+}
+
+.notification.error {
+    border-left: 5px solid #f44336;
+}
+
+.notification.warning {
+    border-left: 5px solid #ff9800;
+}
+
+.notification.info {
+    border-left: 5px solid #2196f3;
+}
+
+.notification-icon {
+    margin-right: 15px;
+    font-size: 20px;
+}
+
+.notification.success .notification-icon {
+    color: #4caf50;
+}
+
+.notification.error .notification-icon {
+    color: #f44336;
+}
+
+.notification.warning .notification-icon {
+    color: #ff9800;
+}
+
+.notification.info .notification-icon {
+    color: #2196f3;
+}
+
+.notification-message {
+    flex-grow: 1;
+    font-size: 14px;
+    color: #333;
+}
+
+.notification-close {
+    margin-left: 15px;
+    cursor: pointer;
+    color: #888;
+    font-size: 16px;
+}
+
+.notification-close:hover {
+    color: #333;
+}
+
+/* AI Labeling in Canvas */
+.ai-controls-group {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.ai-control {
+    background-color: rgba(66, 133, 244, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.ai-control:hover {
+    background-color: rgba(66, 133, 244, 1);
+    transform: scale(1.05);
+}
+
+/* AI Labeling Panel */
+.ai-labeling-panel {
+    background-color: rgba(255, 255, 255, 0.97);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    padding: 15px;
+    width: 300px;
+    position: absolute;
+    top: 0;
+    right: 55px;
+    z-index: 9999 !important; /* Ensure visibility over other elements */
+    border: 1px solid #e0e0e0;
+}
+
+.ai-labeling-panel.visible {
+    display: block !important;
+}
+
+.ai-panel-header {
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+}
+
+.ai-panel-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.ai-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ai-option {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ai-option label {
+    font-size: 13px;
+    color: #555;
+    font-weight: 500;
+}
+
+.ai-option select,
+.ai-option input[type="range"] {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.selected-classes {
+    max-height: 120px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 5px;
+    background-color: #f9f9f9;
+    margin-bottom: 8px;
+}
+
+.selected-class {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    background-color: white;
+    border: 1px solid #eee;
+}
+
+.selected-class .class-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.selected-class .class-name {
+    font-size: 12px;
+    flex-grow: 1;
+}
+
+.custom-classes-option {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.custom-classes-option label {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.custom-classes-option textarea {
+    height: 60px;
+    resize: vertical;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    font-size: 12px;
+}
+
+.ai-action {
+    display: flex;
+    justify-content: center;
+    margin-top: 5px;
+}
+
+.ai-action-btn {
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 15px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ai-action-btn:hover {
+    background-color: #3367d6;
+}
+
+/* AI processing indicator */
+.ai-processing {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    color: white;
+    border-radius: 8px;
+}
+
+.ai-processing-spinner {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid white;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.ai-processing-message {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* AI processing status */
+.ai-processing-status {
+    margin-top: 10px;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 10px;
+}
+
+.processing-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.progress-bar {
+    height: 8px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #4285f4;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+} 

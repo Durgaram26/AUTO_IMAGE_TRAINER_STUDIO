@@ -1,0 +1,83 @@
+2025-05-04 16:28:27,671 - root - INFO - Using default model: yolov8n.pt
+2025-05-04 16:28:27,734 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.221.100:5000
+2025-05-04 16:28:27,734 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-05-04 16:28:27,784 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:27] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:27,786 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:27] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:28,990 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:28] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:28,990 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:28] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:29,004 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:29] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:29,004 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:29] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:31,990 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:31] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:31,990 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:31] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:31,997 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:31] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:31,997 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:31] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:31,997 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:31] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:32,004 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:32] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:33,997 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:33] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:33,997 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:33] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:34,003 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:34] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:34,983 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:34] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:38,000 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:38] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:38,000 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:38] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:38,002 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:38] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:38,003 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:38] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:38,003 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:38] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:40,988 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:40] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:40,988 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:40] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:40,988 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:40] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:40,994 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:40] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:40,994 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:40] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:43,986 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:43] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:47,988 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:47] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:47,989 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:47] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:47,991 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:47] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:47,992 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:47] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:47,994 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:47] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:49,989 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:49] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:49,989 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:49] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:49,989 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:49] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:53,989 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:53] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:53,989 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:53] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:53,989 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:53] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:53,995 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:53] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:57,001 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:57] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:57,002 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:57] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:57,002 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:57] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 16:28:57,002 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:28:57] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:03,990 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:03] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:03,990 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:03] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:03,990 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:03] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:03,994 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:03] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:03,996 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:03] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:05,336 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:05] "[33mGET /api/projects/1/training_status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:05,987 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:05] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:05,988 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:05] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:05,990 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:05] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:06,974 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:06] "[33mGET /projects/1/train HTTP/1.1[0m" 404 -
+2025-05-04 16:29:09,646 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:09] "[33mGET /projects/1/train HTTP/1.1[0m" 404 -
+2025-05-04 16:29:12,987 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:12] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:12,987 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:12] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:12,994 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:12] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 16:29:12,995 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 16:29:12] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 22:35:07,255 - root - INFO - Using default model: yolov8n.pt
+2025-05-04 22:35:07,466 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.66.100:5000
+2025-05-04 22:35:07,468 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-05-04 22:35:10,942 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:10] "[33mGET /projects/1/annotate HTTP/1.1[0m" 404 -
+2025-05-04 22:35:12,277 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:12] "[33mGET /projects/1/annotate HTTP/1.1[0m" 404 -
+2025-05-04 22:35:15,709 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:15] "[33mGET /projects/1/models HTTP/1.1[0m" 404 -
+2025-05-04 22:35:17,821 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:17] "[33mGET /api/models/1/status HTTP/1.1[0m" 404 -
+2025-05-04 22:35:17,829 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:17] "[33mGET /api/models/12/status HTTP/1.1[0m" 404 -
+2025-05-04 22:35:17,833 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:17] "[33mGET /api/models/4/status HTTP/1.1[0m" 404 -
+2025-05-04 22:35:17,835 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:17] "[33mGET /api/models/13/status HTTP/1.1[0m" 404 -
+2025-05-04 22:35:17,840 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:17] "[33mGET /api/models/2/status HTTP/1.1[0m" 404 -
+2025-05-04 22:35:17,850 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:17] "[33mGET /api/models/16/status HTTP/1.1[0m" 404 -
+2025-05-04 22:35:19,817 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:19] "[33mGET /api/models/14/status HTTP/1.1[0m" 404 -
+2025-05-04 22:35:19,817 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:19] "[33mGET /api/models/3/status HTTP/1.1[0m" 404 -
+2025-05-04 22:35:19,832 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:19] "[33mGET /api/models/17/status HTTP/1.1[0m" 404 -
+2025-05-04 22:35:22,160 - werkzeug - INFO - 127.0.0.1 - - [04/May/2025 22:35:22] "[33mGET /projects/1/analytics HTTP/1.1[0m" 404 -
