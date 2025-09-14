@@ -17,7 +17,7 @@ A Roboflow-like computer vision platform built with Flask, SQLAlchemy, and Ultra
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/griffonder.git
+git clone https://github.com/Durgaram26/griffonder.git
 cd griffonder
 ```
 
